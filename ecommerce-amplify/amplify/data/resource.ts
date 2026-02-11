@@ -88,8 +88,6 @@ const schema = a.schema({
     .secondaryIndexes((index) => [
       index('categoryId').sortKeys(['createdAt']).name('byCategoryCreatedAt'),
       index('brand').sortKeys(['createdAt']).name('byBrandCreatedAt'),
-      index('isActive').sortKeys(['createdAt']).name('byActiveCreatedAt'),
-      index('isFeatured').sortKeys(['createdAt']).name('byFeaturedCreatedAt'),
     ])
     .authorization((allow) => [
       allow.guest().to(['read']),

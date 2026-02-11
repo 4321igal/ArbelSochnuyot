@@ -6,6 +6,7 @@ import { paymentsWebhook } from './functions/payments-webhook/resource';
 import { aiEnrichProduct } from './functions/ai-enrich-product/resource';
 import { placeOrder } from './functions/place-order/resource';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { HttpMethods } from 'aws-cdk-lib/aws-s3';
 
 /**
  * AWS Amplify Gen2 Backend Configuration
@@ -50,11 +51,11 @@ const s3Bucket = backend.storage.resources.bucket;
 s3Bucket.addCorsRule({
   allowedHeaders: ['*'],
   allowedMethods: [
-    require('aws-cdk-lib/aws-s3').HttpMethods.GET,
-    require('aws-cdk-lib/aws-s3').HttpMethods.PUT,
-    require('aws-cdk-lib/aws-s3').HttpMethods.POST,
-    require('aws-cdk-lib/aws-s3').HttpMethods.DELETE,
-    require('aws-cdk-lib/aws-s3').HttpMethods.HEAD,
+    HttpMethods.GET,
+    HttpMethods.PUT,
+    HttpMethods.POST,
+    HttpMethods.DELETE,
+    HttpMethods.HEAD,
   ],
   allowedOrigins: [
     'http://localhost:5173',

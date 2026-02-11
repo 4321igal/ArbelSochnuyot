@@ -18,4 +18,9 @@ export const paymentsWebhook = defineFunction({
     PAYMENT_PROVIDER: 'stripe', // or 'paypal', 'checkout', etc.
     LOG_LEVEL: 'INFO',
   },
+  bundling: {
+    externalModules: [
+      '@aws-sdk/*',
+    ],
+  },
 });

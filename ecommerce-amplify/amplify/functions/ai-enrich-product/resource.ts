@@ -20,4 +20,9 @@ export const aiEnrichProduct = defineFunction({
     TARGET_LANGUAGE: 'he',
     LOG_LEVEL: 'INFO',
   },
+  bundling: {
+    externalModules: [
+      '@aws-sdk/*',
+    ],
+  },
 });

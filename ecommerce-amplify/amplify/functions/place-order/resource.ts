@@ -18,4 +18,9 @@ export const placeOrder = defineFunction({
   environment: {
     LOG_LEVEL: 'INFO',
   },
+  bundling: {
+    externalModules: [
+      '@aws-sdk/*',
+    ],
+  },
 });
