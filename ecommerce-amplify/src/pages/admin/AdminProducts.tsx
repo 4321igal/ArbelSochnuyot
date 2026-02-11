@@ -1,0 +1,214 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { listProducts, deleteProduct, updateProduct, type Product } from '../../lib/api/products';
+import { getImageUrl } from '../../lib/api/storage';
+
+/**
+ * Admin Products Page - CRUD for products
+ */
+export function AdminProducts() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [nextToken, setNextToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
+
+  useEffect(() => {
+    loadProducts();
+  }, [filter]);
+
+  const loadProducts = async (token?: string) => {
+    setIsLoading(true);
+    try {
+      const result = await listProducts({
+        limit: 20,
+        nextToken: token,
+        isActive: filter === 'all' ? undefined : filter === 'active',
+      });
+      
+      if (token) {
+        setProducts(prev => [...prev, ...result.items]);
+      } else {
+        setProducts(result.items);
+      }
+      setNextToken(result.nextToken || null);
+    } catch (error) {
+      console.error('Failed to load products:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleActive = async (product: Product) => {
+    try {
+      await updateProduct(product.id, { isActive: !product.isActive });
+      setProducts(prev =>
+        prev.map(p => p.id === product.id ? { ...p, isActive: !p.isActive } : p)
+      );
+    } catch (error) {
+      console.error('Failed to update product:', error);
+    }
+  };
+
+  const handleDelete = async (productId: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+
+    try {
+      await deleteProduct(productId);
+      setProducts(prev => prev.filter(p => p.id !== productId));
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+          <p className="text-gray-500">{products.length} products</p>
+        </div>
+        <Link
+          to="/admin/products/new"
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700"
+        >
+          + Add Product
+        </Link>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              filter === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setFilter('active')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              filter === 'active' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => setFilter('inactive')}
+            className={`px-4 py-2 rounded-lg font-medium ${
+              filter === 'inactive' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Inactive
+          </button>
+        </div>
+      </div>
+
+      {/* Products Table */}
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {isLoading && products.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            No products found
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Product</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Price</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Stock</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {products.map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                        <img
+                          src={getImageUrl(product.images?.[0])}
+                          alt={product.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{product.title}</p>
+                        <p className="text-sm text-gray-500">{product.sku || 'No SKU'}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <p className="font-medium">₪{product.price.toFixed(2)}</p>
+                    {product.compareAtPrice && (
+                      <p className="text-sm text-gray-500 line-through">
+                        ₪{product.compareAtPrice.toFixed(2)}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`font-medium ${
+                      product.stockQty <= 0 ? 'text-red-600' :
+                      product.stockQty <= 5 ? 'text-yellow-600' :
+                      'text-green-600'
+                    }`}>
+                      {product.stockQty}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => handleToggleActive(product)}
+                      className={`px-2 py-1 text-xs font-bold rounded ${
+                        product.isActive
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {product.isActive ? 'Active' : 'Inactive'}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-end gap-2">
+                      <Link
+                        to={`/admin/products/${product.id}/edit`}
+                        className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(product.id)}
+                        className="text-red-600 hover:text-red-700 text-sm font-medium"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {/* Load More */}
+        {nextToken && (
+          <div className="p-4 text-center border-t">
+            <button
+              onClick={() => loadProducts(nextToken)}
+              disabled={isLoading}
+              className="text-indigo-600 hover:text-indigo-700 font-medium disabled:text-gray-400"
+            >
+              {isLoading ? 'Loading...' : 'Load More'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
