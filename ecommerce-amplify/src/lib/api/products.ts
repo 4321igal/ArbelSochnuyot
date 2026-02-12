@@ -35,6 +35,8 @@ export interface Category {
   imageUrl?: string | null;
   sortOrder: number;
   isActive: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 /**
@@ -126,23 +128,78 @@ export async function listProductsByCategory(
 }
 
 /**
- * List all categories
+ * List all categories (for storefront – active only)
  */
 export async function listCategories(): Promise<Category[]> {
   const { data } = await client.models.Category.list({
     filter: { isActive: { eq: true } },
   });
 
-  return (data || []).map((cat: any) => ({
-    id: cat.id,
-    name: cat.name,
-    slug: cat.slug,
-    description: cat.description,
-    parentId: cat.parentId,
-    imageUrl: cat.imageUrl,
-    sortOrder: cat.sortOrder || 0,
-    isActive: cat.isActive ?? true,
-  }));
+  return (data || []).map(mapCategory);
+}
+
+/**
+ * List all categories for admin (optional filter by isActive)
+ */
+export async function listAllCategories(options?: {
+  includeInactive?: boolean;
+}): Promise<Category[]> {
+  const filter = options?.includeInactive ? undefined : { isActive: { eq: true } };
+  const { data } = await client.models.Category.list({ filter });
+  return (data || []).map(mapCategory);
+}
+
+/**
+ * Get category by ID
+ */
+export async function getCategoryById(id: string): Promise<Category | null> {
+  const { data, errors } = await client.models.Category.get({ id });
+  if (errors || !data) return null;
+  return mapCategory(data);
+}
+
+/**
+ * Get product count for a category (for admin table)
+ */
+export async function getProductCountByCategoryId(categoryId: string): Promise<number> {
+  const { data } = await client.models.Product.list({
+    filter: { categoryId: { eq: categoryId } },
+    limit: 5000,
+  });
+  return data?.length ?? 0;
+}
+
+/**
+ * Check if a category slug is already used (excludeId for edit mode)
+ */
+export async function categorySlugExists(slug: string, excludeId?: string): Promise<boolean> {
+  const { data } = await client.models.Category.list({
+    filter: { slug: { eq: slug } },
+    limit: 10,
+  });
+  if (!data?.length) return false;
+  if (excludeId) return data.some((c: any) => c.id !== excludeId);
+  return true;
+}
+
+/**
+ * Get product count per category (for admin table – one pass over products)
+ */
+export async function getProductCountByCategoryMap(): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  let nextToken: string | undefined;
+  do {
+    const { data, nextToken: nt } = await client.models.Product.list({
+      limit: 100,
+      nextToken,
+    });
+    nextToken = nt ?? undefined;
+    for (const p of data || []) {
+      const cid = (p as any).categoryId;
+      if (cid) counts[cid] = (counts[cid] || 0) + 1;
+    }
+  } while (nextToken);
+  return counts;
 }
 
 /**
@@ -158,7 +215,10 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
     return null;
   }
 
-  const cat = data[0];
+  return mapCategory(data[0]);
+}
+
+function mapCategory(cat: any): Category {
   return {
     id: cat.id,
     name: cat.name,
@@ -168,17 +228,22 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
     imageUrl: cat.imageUrl,
     sortOrder: cat.sortOrder || 0,
     isActive: cat.isActive ?? true,
+    createdAt: cat.createdAt ?? null,
+    updatedAt: cat.updatedAt ?? null,
   };
 }
 
 /**
- * Create category (Admin only)
+ * Create category
  */
 export async function createCategory(input: {
   name: string;
   slug?: string;
   description?: string | null;
+  parentId?: string | null;
+  imageUrl?: string | null;
   sortOrder?: number;
+  isActive?: boolean;
 }): Promise<Category> {
   const slug =
     input.slug?.trim() ||
@@ -191,8 +256,10 @@ export async function createCategory(input: {
     name: input.name.trim(),
     slug: slug || `cat-${Date.now()}`,
     description: input.description ?? undefined,
+    parentId: input.parentId ?? undefined,
+    imageUrl: input.imageUrl ?? undefined,
     sortOrder: input.sortOrder ?? 0,
-    isActive: true,
+    isActive: input.isActive ?? true,
   })) as { data?: unknown; errors?: { message?: string }[] };
   const data = Array.isArray(res.data) ? res.data[0] : res.data;
   const errors = res.errors;
@@ -200,17 +267,34 @@ export async function createCategory(input: {
   if (errors?.length || !data) {
     throw new Error(errors?.[0]?.message || 'Failed to create category');
   }
-  const d = data as Record<string, unknown>;
-  return {
-    id: d.id as string,
-    name: d.name as string,
-    slug: d.slug as string,
-    description: d.description as string | null,
-    parentId: d.parentId as string | null,
-    imageUrl: d.imageUrl as string | null,
-    sortOrder: (d.sortOrder as number) ?? 0,
-    isActive: (d.isActive as boolean) ?? true,
-  };
+  return mapCategory(data);
+}
+
+/**
+ * Update category
+ */
+export async function updateCategory(
+  id: string,
+  input: Partial<Pick<Category, 'name' | 'slug' | 'description' | 'parentId' | 'imageUrl' | 'sortOrder' | 'isActive'>>
+): Promise<Category> {
+  const { data, errors } = await client.models.Category.update({
+    id,
+    ...input,
+  });
+  if (errors?.length || !data) {
+    throw new Error(errors?.[0]?.message || 'Failed to update category');
+  }
+  return mapCategory(data);
+}
+
+/**
+ * Delete category (fails if has children or products – check in UI first)
+ */
+export async function deleteCategory(id: string): Promise<void> {
+  const { errors } = await client.models.Category.delete({ id });
+  if (errors?.length) {
+    throw new Error(errors[0].message || 'Failed to delete category');
+  }
 }
 
 /**

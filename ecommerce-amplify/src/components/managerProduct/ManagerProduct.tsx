@@ -67,6 +67,8 @@ function ManagerProductContent() {
   const {
     csvFile,
     importPreview,
+    csvHeaders,
+    csvRows,
     onCSVUpload,
     selectNew,
     reset: resetCSV,
@@ -380,6 +382,8 @@ function ManagerProductContent() {
         isOpen={showImportModal}
         csvFile={csvFile}
         importPreview={importPreview}
+        csvHeaders={csvHeaders}
+        csvRows={csvRows}
         onCSVUpload={onCSVUpload}
         onImport={handleImport}
         onClose={() => {

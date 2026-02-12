@@ -27,6 +27,7 @@ import { AdminProductForm } from './pages/admin/AdminProductForm';
 import { AdminCategories } from './pages/admin/AdminCategories';
 import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminOrderDetail } from './pages/admin/AdminOrderDetail';
+import { AdminImportCSV } from './pages/admin/AdminImportCSV';
 import { ManagerProduct } from './components/managerProduct';
 
 // Route Guards
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="categories" element={<AdminCategories />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="orders/:id" element={<AdminOrderDetail />} />
+          <Route path="import-csv" element={<AdminImportCSV />} />
           <Route path="manager-product" element={<ManagerProduct />} />
         </Route>
       </Route>

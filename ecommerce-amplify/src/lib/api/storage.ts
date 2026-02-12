@@ -137,6 +137,36 @@ export async function uploadProductImages(
 }
 
 /**
+ * Upload CSV file for import (stored in S3, then editable + quick add products).
+ */
+export async function uploadCSVImport(file: File): Promise<UploadResult> {
+  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const key = `${IMAGES_PREFIX}imports/${Date.now()}-${safeName}`;
+
+  const result = await uploadData({
+    key,
+    data: file,
+    options: {
+      contentType: file.type || 'text/csv',
+      accessLevel: 'guest',
+    },
+  }).result;
+
+  const urlResult = await getUrl({
+    key: result.key,
+    options: {
+      accessLevel: 'guest',
+      expiresIn: 3600 * 24 * 7,
+    },
+  });
+
+  return {
+    key: result.key,
+    url: urlResult.url.toString(),
+  };
+}
+
+/**
  * Get image URL from key or full URL
  * Handles S3 keys (with or without images/ prefix) and full URLs
  */

@@ -21,21 +21,28 @@ function parseCSVRow(row: string): string[] {
   return result;
 }
 
-function parseCSV(text: string): CSVPreviewItem[] {
+function parseCSV(text: string): { items: CSVPreviewItem[]; headers: string[]; rows: Record<string, string>[] } {
   const lines = text.split(/\r?\n/).filter((line) => line.trim());
-  if (lines.length < 2) return [];
-  const header = parseCSVRow(lines[0]).map((h) => h.toLowerCase().trim());
-  const rawNameIdx = header.indexOf('rawname');
-  const rawDescIdx = header.indexOf('rawdescription');
-  const barcodeIdx = header.indexOf('barcode');
-  const categoryIdx = header.indexOf('category');
-  const nameIdx = header.indexOf('name');
-  const descIdx = header.indexOf('description');
+  if (lines.length < 2) return { items: [], headers: [], rows: [] };
+  const header = parseCSVRow(lines[0]).map((h) => h.trim());
+  const headerLower = header.map((h) => h.toLowerCase().trim());
+  const rawNameIdx = headerLower.indexOf('rawname');
+  const rawDescIdx = headerLower.indexOf('rawdescription');
+  const barcodeIdx = headerLower.indexOf('barcode');
+  const categoryIdx = headerLower.indexOf('category');
+  const nameIdx = headerLower.indexOf('name');
+  const descIdx = headerLower.indexOf('description');
 
   const items: CSVPreviewItem[] = [];
+  const rows: Record<string, string>[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cells = parseCSVRow(lines[i]);
     if (cells.length === 0) continue;
+    const row: Record<string, string> = {};
+    header.forEach((h, idx) => {
+      row[h] = cells[idx] ?? '';
+    });
+    rows.push(row);
     items.push({
       rawName: rawNameIdx >= 0 ? cells[rawNameIdx] : nameIdx >= 0 ? cells[nameIdx] : cells[0],
       name: nameIdx >= 0 ? cells[nameIdx] : undefined,
@@ -45,7 +52,7 @@ function parseCSV(text: string): CSVPreviewItem[] {
       barcode: barcodeIdx >= 0 ? cells[barcodeIdx] : undefined,
     });
   }
-  return items;
+  return { items, headers: header, rows };
 }
 
 export type { CSVPreviewItem };
@@ -54,12 +61,18 @@ export function useCSVImport() {
   const [csvFile, setCSVFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<CSVPreviewItem[]>([]);
 
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvRows, setCsvRows] = useState<Record<string, string>[]>([]);
+
   const onCSVUpload = useCallback((file: File) => {
     setCSVFile(file);
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result ?? '');
-      setImportPreview(parseCSV(text));
+      const { items, headers, rows } = parseCSV(text);
+      setImportPreview(items);
+      setCsvHeaders(headers);
+      setCsvRows(rows);
     };
     reader.readAsText(file, 'utf-8');
   }, []);
@@ -67,16 +80,22 @@ export function useCSVImport() {
   const selectNew = useCallback(() => {
     setCSVFile(null);
     setImportPreview([]);
+    setCsvHeaders([]);
+    setCsvRows([]);
   }, []);
 
   const reset = useCallback(() => {
     setCSVFile(null);
     setImportPreview([]);
+    setCsvHeaders([]);
+    setCsvRows([]);
   }, []);
 
   return {
     csvFile,
     importPreview,
+    csvHeaders,
+    csvRows,
     onCSVUpload,
     selectNew,
     reset,

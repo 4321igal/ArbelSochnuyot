@@ -16,6 +16,7 @@ export function AdminLayout() {
     { path: '/admin/manager-product', label: 'Manager Product', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
     { path: '/admin/categories', label: 'Categories', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
     { path: '/admin/orders', label: 'Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+    { path: '/admin/import-csv', label: 'Import CSV', icon: 'M7 16a4 4 0 01-.88-7.903A15 15 0 0118 9.75v-1.5a2.25 2.25 0 00-2.25-2.25h-.75a2.25 2.25 0 00-2.25 2.25v1.5A15 15 0 016.18 8.1 4 4 0 017 16zM4 10a.75.75 0 01.75-.75h7.5a.75.75 0 01.75.75v4a.75.75 0 01-.75.75h-7.5A.75.75 0 014 14v-4z' },
   ];
 
   const isActive = (path: string) => {

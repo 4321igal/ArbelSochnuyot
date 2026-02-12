@@ -53,5 +53,11 @@ export const storage = defineStorage({
     [`${IMAGES_PREFIX}temp/{entity_id}/*`]: [
       allow.entity('identity').to(['read', 'write', 'delete']),
     ],
+
+    // Admin CSV imports - upload then edit/add products
+    [`${IMAGES_PREFIX}imports/*`]: [
+      allow.authenticated.to(['read', 'write', 'delete']),
+      allow.groups(['Admin']).to(['read', 'write', 'delete']),
+    ],
   }),
 });
