@@ -2,7 +2,6 @@ import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { paymentsWebhook } from '../functions/payments-webhook/resource';
 import { aiEnrichProduct } from '../functions/ai-enrich-product/resource';
 import { placeOrder } from '../functions/place-order/resource';
-import { getAdminSchema } from '../functions/get-admin-schema/resource';
 
 /**
  * E-Commerce Data Schema - Amplify Gen2
@@ -316,13 +315,6 @@ const schema = a.schema({
     .authorization((allow) => [allow.guest()]) // Webhooks need public access
     .handler(a.handler.function(paymentsWebhook)),
 
-  // Schema for CSV import – tables, fields, types, required, unique, FKs (no schema mutation).
-  // Authenticated users who can access manager-product can load schema for mapping.
-  getAdminSchema: a
-    .query()
-    .returns(a.json())
-    .authorization((allow) => [allow.authenticated()])
-    .handler(a.handler.function(getAdminSchema)),
 });
 
 export type Schema = ClientSchema<typeof schema>;

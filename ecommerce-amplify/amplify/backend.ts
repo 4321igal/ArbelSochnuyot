@@ -5,7 +5,6 @@ import { storage } from './storage/resource';
 import { paymentsWebhook } from './functions/payments-webhook/resource';
 import { aiEnrichProduct } from './functions/ai-enrich-product/resource';
 import { placeOrder } from './functions/place-order/resource';
-import { getAdminSchema } from './functions/get-admin-schema/resource';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { HttpMethods } from 'aws-cdk-lib/aws-s3';
 
@@ -25,7 +24,6 @@ const backend = defineBackend({
   paymentsWebhook,
   aiEnrichProduct,
   placeOrder,
-  getAdminSchema,
 });
 
 // Grant Lambda functions access to Secrets Manager for API keys
