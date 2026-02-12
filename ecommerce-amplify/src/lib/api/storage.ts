@@ -2,9 +2,16 @@ import { uploadData, getUrl, remove } from 'aws-amplify/storage';
 
 /**
  * Storage API
- * 
- * Provides methods for file upload/download using Amplify Storage
+ *
+ * Uses bucket path: images/ (e.g. bucket name contains ecommercestoragebucket00).
  */
+
+const IMAGES_PREFIX = 'images/';
+
+function normalizeKey(key: string): string {
+  if (key.startsWith(IMAGES_PREFIX)) return key;
+  return `${IMAGES_PREFIX}${key}`;
+}
 
 export interface UploadResult {
   key: string;
@@ -13,7 +20,7 @@ export interface UploadResult {
 
 /**
  * Upload product image
- * 
+ *
  * @param productId - Product ID for path organization
  * @param file - File to upload
  * @param filename - Optional custom filename
@@ -25,7 +32,7 @@ export async function uploadProductImage(
   filename?: string
 ): Promise<UploadResult> {
   const ext = file.name.split('.').pop() || 'jpg';
-  const key = `products/${productId}/${filename || `${Date.now()}.${ext}`}`;
+  const key = `${IMAGES_PREFIX}products/${productId}/${filename || `${Date.now()}.${ext}`}`;
 
   const result = await uploadData({
     key,
@@ -59,7 +66,7 @@ export async function uploadCategoryImage(
   file: File
 ): Promise<UploadResult> {
   const ext = file.name.split('.').pop() || 'jpg';
-  const key = `categories/${categoryId}/${Date.now()}.${ext}`;
+  const key = `${IMAGES_PREFIX}categories/${categoryId}/${Date.now()}.${ext}`;
 
   const result = await uploadData({
     key,
@@ -88,8 +95,9 @@ export async function uploadCategoryImage(
  * Get signed URL for an existing file
  */
 export async function getSignedUrl(key: string): Promise<string> {
+  const normalizedKey = normalizeKey(key);
   const result = await getUrl({
-    key,
+    key: normalizedKey,
     options: {
       accessLevel: 'guest',
       expiresIn: 3600, // 1 hour
@@ -104,7 +112,7 @@ export async function getSignedUrl(key: string): Promise<string> {
  */
 export async function deleteFile(key: string): Promise<void> {
   await remove({
-    key,
+    key: normalizeKey(key),
     options: {
       accessLevel: 'guest',
     },
@@ -130,19 +138,18 @@ export async function uploadProductImages(
 
 /**
  * Get image URL from key or full URL
- * Handles both S3 keys and full URLs
+ * Handles S3 keys (with or without images/ prefix) and full URLs
  */
 export function getImageUrl(keyOrUrl: string | null | undefined): string {
   if (!keyOrUrl) {
     return '/placeholder.png';
   }
 
-  // If it's already a full URL, return it
   if (keyOrUrl.startsWith('http://') || keyOrUrl.startsWith('https://')) {
     return keyOrUrl;
   }
 
-  // Otherwise, it's an S3 key - return a placeholder
-  // In production, you'd get a signed URL
-  return `/api/image/${encodeURIComponent(keyOrUrl)}`;
+  // S3 key: ensure images/ prefix for bucket path
+  const key = normalizeKey(keyOrUrl);
+  return `/api/image/${encodeURIComponent(key)}`;
 }
