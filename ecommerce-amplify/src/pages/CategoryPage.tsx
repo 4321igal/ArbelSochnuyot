@@ -100,7 +100,13 @@ export function CategoryPage() {
     : sortedProducts;
 
   // Get unique brands for filter
-  const brands = [...new Set(products.map(p => p.brand).filter(Boolean))];
+  const brands = [
+    ...new Set(
+      products
+        .map((p) => p.brand)
+        .filter((b): b is string => typeof b === 'string' && b.length > 0)
+    ),
+  ];
 
   if (isLoading) {
     return (

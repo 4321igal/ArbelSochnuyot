@@ -1,5 +1,4 @@
-import { generateClient } from 'aws-amplify/api';
-import type { Schema } from '../../../amplify/data/resource';
+import { generateClient } from 'aws-amplify/data';
 
 /**
  * Typed Amplify Data Client
@@ -10,7 +9,9 @@ import type { Schema } from '../../../amplify/data/resource';
  * - client.models.Product.create(data)
  * - etc.
  */
-export const client = generateClient<Schema>();
+// Using `any` here to avoid coupling the frontend build to backend
+// `amplify/*/resource.ts` types, which are meant for backend synthesis.
+export const client = generateClient<any>();
 
 /**
  * Pagination helper

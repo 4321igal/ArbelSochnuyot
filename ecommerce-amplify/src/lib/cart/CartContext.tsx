@@ -149,10 +149,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Create cart in DB
-    const { data: newCart, errors } = await client.models.Cart.create({
+    const createRes = (await client.models.Cart.create({
       userId,
       status: 'ACTIVE',
-    });
+    })) as any;
+    const errors = createRes?.errors as any;
+    const newCart = (Array.isArray(createRes?.data) ? createRes.data[0] : createRes?.data) as any;
 
     if (errors || !newCart) {
       throw new Error('Failed to create cart');
@@ -210,14 +212,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Create item in DB
-      const { data: newItem, errors } = await client.models.CartItem.create({
+      const itemCreateRes = (await client.models.CartItem.create({
         cartId,
         productId: product.id,
         quantity,
         priceSnapshot: product.price,
         titleSnapshot: product.title,
         imageSnapshot: product.image,
-      });
+      })) as any;
+      const errors = itemCreateRes?.errors as any;
+      const newItem = (Array.isArray(itemCreateRes?.data) ? itemCreateRes.data[0] : itemCreateRes?.data) as any;
 
       if (errors || !newItem) {
         throw new Error('Failed to add item to cart');

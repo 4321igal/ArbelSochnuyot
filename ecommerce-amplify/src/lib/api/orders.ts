@@ -66,14 +66,15 @@ export interface PlaceOrderInput {
 export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
   const idempotencyKey = uuidv4();
 
-  const { data, errors } = await client.mutations.placeOrderMutation({
+  const res = (await client.mutations.placeOrderMutation({
     cartId: input.cartId,
     shippingAddress: input.shippingAddress,
     billingAddress: input.billingAddress || input.shippingAddress,
     shippingMethod: input.shippingMethod,
     paymentMethod: input.paymentMethod,
     idempotencyKey,
-  });
+  })) as any;
+  const { data, errors } = res;
 
   if (errors || !data) {
     throw new Error(errors?.[0]?.message || 'Failed to place order');
@@ -110,7 +111,7 @@ export async function getOrder(id: string): Promise<Order | null> {
     filter: { orderId: { eq: id } },
   });
 
-  order.items = (items || []).map(item => ({
+  order.items = (items || []).map((item: any) => ({
     id: item.id,
     orderId: item.orderId,
     productId: item.productId,

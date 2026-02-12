@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../lib/cart/CartContext';
 import { placeOrder, type Address } from '../lib/api/orders';
 
@@ -8,7 +8,6 @@ import { placeOrder, type Address } from '../lib/api/orders';
  */
 export function CheckoutPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { cart, items, subtotal, clearCart } = useCart();
   
   const [step, setStep] = useState(1);

@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { generateClient } from 'aws-amplify/data';
-import type { Schema } from '../../../../amplify/data/resource';
 
-const client = generateClient<Schema>();
+const client = generateClient<any>();
 
-type Order = Schema['Order']['type'];
-type OrderItem = Schema['OrderItem']['type'];
+type Order = any;
+type OrderItem = any;
 
 const ORDER_STATUSES = [
   { value: 'pending', label: 'Pending', description: 'Order received, awaiting confirmation' },

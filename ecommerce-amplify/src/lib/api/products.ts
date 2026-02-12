@@ -133,7 +133,7 @@ export async function listCategories(): Promise<Category[]> {
     filter: { isActive: { eq: true } },
   });
 
-  return (data || []).map(cat => ({
+  return (data || []).map((cat: any) => ({
     id: cat.id,
     name: cat.name,
     slug: cat.slug,

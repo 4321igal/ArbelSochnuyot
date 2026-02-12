@@ -26,12 +26,12 @@ export function AuthPage() {
             },
           }}
         >
-          {({ signOut, user }) => {
+          {({ user }) => {
             // User is authenticated, redirect
             if (user) {
               navigate(from, { replace: true });
             }
-            return null;
+            return <div />;
           }}
         </Authenticator>
 

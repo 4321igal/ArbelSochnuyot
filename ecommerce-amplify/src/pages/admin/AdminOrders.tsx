@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { generateClient } from 'aws-amplify/data';
-import type { Schema } from '../../../../amplify/data/resource';
 
-const client = generateClient<Schema>();
+const client = generateClient<any>();
 
-type Order = Schema['Order']['type'];
+type Order = any;
 
 const ORDER_STATUSES = [
   { value: 'all', label: 'All Orders' },

@@ -5,7 +5,6 @@ import {
   createProduct, 
   updateProduct, 
   listCategories,
-  type Product, 
   type Category 
 } from '../../lib/api/products';
 import { uploadProductImages, getImageUrl } from '../../lib/api/storage';

@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom';
-import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 
 // Layout
