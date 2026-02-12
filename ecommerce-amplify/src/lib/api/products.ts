@@ -172,17 +172,62 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
 }
 
 /**
+ * Create category (Admin only)
+ */
+export async function createCategory(input: {
+  name: string;
+  slug?: string;
+  description?: string | null;
+  sortOrder?: number;
+}): Promise<Category> {
+  const slug =
+    input.slug?.trim() ||
+    input.name
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-\u0590-\u05FF]/g, '');
+  const res = (await client.models.Category.create({
+    name: input.name.trim(),
+    slug: slug || `cat-${Date.now()}`,
+    description: input.description ?? undefined,
+    sortOrder: input.sortOrder ?? 0,
+    isActive: true,
+  })) as { data?: unknown; errors?: { message?: string }[] };
+  const data = Array.isArray(res.data) ? res.data[0] : res.data;
+  const errors = res.errors;
+
+  if (errors?.length || !data) {
+    throw new Error(errors?.[0]?.message || 'Failed to create category');
+  }
+  const d = data as Record<string, unknown>;
+  return {
+    id: d.id as string,
+    name: d.name as string,
+    slug: d.slug as string,
+    description: d.description as string | null,
+    parentId: d.parentId as string | null,
+    imageUrl: d.imageUrl as string | null,
+    sortOrder: (d.sortOrder as number) ?? 0,
+    isActive: (d.isActive as boolean) ?? true,
+  };
+}
+
+/**
  * Create product (Admin only)
  */
 export async function createProduct(input: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
-  const { data, errors } = await client.models.Product.create({
+  const res = (await client.models.Product.create({
     ...input,
     images: input.images?.filter((img): img is string => img !== null),
     tags: input.tags?.filter((tag): tag is string => tag !== null),
-  });
+  })) as { data?: unknown; errors?: { message?: string }[] };
+  const data = Array.isArray(res.data) ? res.data[0] : res.data;
+  const errors = res.errors;
 
-  if (errors || !data) {
-    throw new Error('Failed to create product');
+  if (errors?.length || !data) {
+    const msg = errors?.[0]?.message || 'Failed to create product';
+    throw new Error(msg);
   }
 
   return mapProduct(data);

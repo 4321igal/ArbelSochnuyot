@@ -26,8 +26,14 @@ export function AdminRoute() {
     return <Navigate to="/auth" state={{ from: location.pathname }} replace />;
   }
 
+  // דף ניהול מוצרים – פתוח לכל משתמש מחובר
+  const isManagerProductPage = location.pathname === '/admin/manager-product';
+  if (isManagerProductPage) {
+    return <Outlet />;
+  }
+
   if (!isAdmin) {
-    // Redirect non-admin users to home
+    // Redirect non-admin users to home (rest of admin pages)
     return <Navigate to="/" replace />;
   }
 

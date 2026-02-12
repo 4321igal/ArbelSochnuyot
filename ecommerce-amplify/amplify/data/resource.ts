@@ -49,7 +49,7 @@ const schema = a.schema({
     ])
     .authorization((allow) => [
       allow.guest().to(['read']),
-      allow.authenticated().to(['read']),
+      allow.authenticated().to(['read', 'create']),
       allow.group('Admin').to(['create', 'read', 'update', 'delete']),
     ]),
 
@@ -91,7 +91,7 @@ const schema = a.schema({
     ])
     .authorization((allow) => [
       allow.guest().to(['read']),
-      allow.authenticated().to(['read']),
+      allow.authenticated().to(['read', 'create', 'update']),
       allow.group('Admin').to(['create', 'read', 'update', 'delete']),
     ]),
 
