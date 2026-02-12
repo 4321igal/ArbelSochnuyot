@@ -1,4 +1,4 @@
-import type { AdminSchema, SchemaField, SchemaTable } from '@/lib/api/schema';
+import type { AdminSchema, SchemaTable } from '@/lib/api/schema';
 import { getTable, getField, getUniqueFields } from '@/lib/api/schema';
 import { parseByType } from './validation';
 import { client } from '@/lib/amplify/client';
