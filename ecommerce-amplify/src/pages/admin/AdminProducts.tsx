@@ -11,8 +11,11 @@ export function AdminProducts() {
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    setSelectedIds(new Set());
     loadProducts();
   }, [filter]);
 
@@ -55,8 +58,50 @@ export function AdminProducts() {
     try {
       await deleteProduct(productId);
       setProducts(prev => prev.filter(p => p.id !== productId));
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        next.delete(productId);
+        return next;
+      });
     } catch (error) {
       console.error('Failed to delete product:', error);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === products.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(products.map(p => p.id)));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} selected product(s)?`)) return;
+
+    setDeleting(true);
+    try {
+      for (const id of selectedIds) {
+        try {
+          await deleteProduct(id);
+        } catch (e) {
+          console.error('Failed to delete product:', id, e);
+        }
+      }
+      setProducts(prev => prev.filter(p => !selectedIds.has(p.id)));
+      setSelectedIds(new Set());
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -68,12 +113,23 @@ export function AdminProducts() {
           <h1 className="text-2xl font-bold text-gray-900">Products</h1>
           <p className="text-gray-500">{products.length} products</p>
         </div>
-        <Link
-          to="/admin/products/new"
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700"
-        >
-          + Add Product
-        </Link>
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleDeleteSelected}
+              disabled={deleting}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleting ? 'Deleting...' : `Delete ${selectedIds.size} selected`}
+            </button>
+          )}
+          <Link
+            to="/admin/products/new"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700"
+          >
+            + Add Product
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -120,6 +176,14 @@ export function AdminProducts() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={products.length > 0 && selectedIds.size === products.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Product</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Price</th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase">Stock</th>
@@ -129,7 +193,15 @@ export function AdminProducts() {
             </thead>
             <tbody className="divide-y">
               {products.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
+                <tr key={product.id} className={`hover:bg-gray-50 ${selectedIds.has(product.id) ? 'bg-indigo-50' : ''}`}>
+                  <td className="w-10 px-4 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(product.id)}
+                      onChange={() => toggleSelect(product.id)}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
