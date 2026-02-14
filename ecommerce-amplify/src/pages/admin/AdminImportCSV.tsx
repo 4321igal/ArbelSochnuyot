@@ -23,7 +23,8 @@ function parseCSV(text: string): { headers: string[]; rows: Record<string, strin
     if (cur.length) out.push(cur.trim());
     return out;
   };
-  const headers = parseRow(lines[0]).map((h) => h.trim());
+  const rawHeaders = parseRow(lines[0]);
+  const headers = rawHeaders.map((h, i) => (h && String(h).trim()) || `Column ${i + 1}`);
   const rows: Record<string, string>[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cells = parseRow(lines[i]);
@@ -52,6 +53,7 @@ export function AdminImportCSV() {
   const [colPrice, setColPrice] = useState<string>('');
   const [colCategory, setColCategory] = useState<string>('');
   const [colSku, setColSku] = useState<string>('');
+  const [addAsActive, setAddAsActive] = useState(true);
   const [addingRow, setAddingRow] = useState<number | null>(null);
   const [addingAll, setAddingAll] = useState(false);
 
@@ -74,12 +76,18 @@ export function AdminImportCSV() {
         const { headers: h, rows: r } = parseCSV(text);
         setHeaders(h);
         setRows(r);
+        const lower = (s: string) => s.toLowerCase().trim();
         if (h.length && !colTitle) setColTitle(h[0]);
-        if (h.includes('description')) setColDesc('description');
-        if (h.includes('price')) setColPrice('price');
-        if (h.includes('category')) setColCategory('category');
-        if (h.includes('sku')) setColSku('sku');
-        if (h.includes('barcode')) setColSku('barcode');
+        const descCol = h.find((x) => /^(description|desc|תיאור)$/i.test(lower(x)));
+        if (descCol) setColDesc(descCol);
+        const priceCol = h.find((x) => /^(price|מחיר)$/i.test(lower(x)));
+        if (priceCol) setColPrice(priceCol);
+        const catCol = h.find((x) => /^(category|cat|קטגוריה)$/i.test(lower(x)));
+        if (catCol) setColCategory(catCol);
+        const skuCol = h.find((x) => /^(sku|barcode|ברקוד)$/i.test(lower(x)));
+        if (skuCol) setColSku(skuCol);
+        const titleCol = h.find((x) => /^(title|name|product|שם|מוצר)$/i.test(lower(x)));
+        if (titleCol) setColTitle(titleCol);
         await loadCategories();
       } catch (err) {
         setUploadError(err instanceof Error ? err.message : 'שגיאה בהעלאה');
@@ -137,14 +145,14 @@ export function AdminImportCSV() {
           categoryId: catId,
           sku: sku(row) || undefined,
           stockQty: 0,
-          isActive: false,
+          isActive: addAsActive,
           isFeatured: false,
         });
       } finally {
         setAddingRow(null);
       }
     },
-    [rows, defaultCategoryId, categories, colTitle, colDesc, colPrice, colCategory, colSku]
+    [rows, defaultCategoryId, categories, colTitle, colDesc, colPrice, colCategory, colSku, addAsActive]
   );
 
   const addAllAsProducts = useCallback(async () => {
@@ -324,6 +332,23 @@ export function AdminImportCSV() {
                 </select>
               </div>
             </div>
+            <div className="flex items-center gap-2 mb-4">
+              <input
+                type="checkbox"
+                id="addAsActive"
+                checked={addAsActive}
+                onChange={(e) => setAddAsActive(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <label htmlFor="addAsActive" className="text-sm text-gray-700">
+                הוסף כפעיל (יוצג בחנות ללקוחות)
+              </label>
+            </div>
+            {colPrice && (
+              <p className="text-sm text-gray-600 mb-2">
+                מיפוי מחיר: עמודה <strong>{colPrice}</strong> → שדה מחיר במוצר.
+              </p>
+            )}
             {categories.length === 0 && (
               <p className="text-amber-700 text-sm mb-2">הוסף קטגוריה בעמוד קטגוריות לפני הוספת מוצרים.</p>
             )}
