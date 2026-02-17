@@ -222,19 +222,36 @@ export async function getProductCountByCategoryMap(): Promise<Record<string, num
 }
 
 /**
+ * Normalize slug for consistent URLs: lowercase, spaces to hyphens, strip invalid chars.
+ */
+function normalizeSlug(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-\u0590-\u05FF]/g, '');
+}
+
+/**
  * Get category by slug (returns category even if inactive – UI can show "unavailable").
+ * Tries exact match first, then case-insensitive match so /category/barpintotest2 finds "BarPintoTest2".
  */
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
+  const trimmed = slug?.trim() || '';
+  if (!trimmed) return null;
+
   const { data } = await client.models.Category.list({
-    filter: { slug: { eq: slug } },
+    filter: { slug: { eq: trimmed } },
     limit: 1,
   });
 
-  if (!data || data.length === 0) {
-    return null;
-  }
+  if (data?.length) return mapCategory(data[0]);
 
-  return mapCategory(data[0]);
+  // Fallback: slug in DB might have different casing (e.g. "BarPintoTest2")
+  const all = await listAllCategories({ includeInactive: true });
+  const slugLower = trimmed.toLowerCase();
+  const found = all.find((c) => c.slug.toLowerCase() === slugLower);
+  return found ?? null;
 }
 
 function mapCategory(cat: any): Category {
@@ -265,15 +282,12 @@ export async function createCategory(input: {
   isActive?: boolean;
 }): Promise<Category> {
   const slug =
-    input.slug?.trim() ||
-    input.name
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-\u0590-\u05FF]/g, '');
+    (input.slug && normalizeSlug(input.slug)) ||
+    (input.name.trim() && normalizeSlug(input.name)) ||
+    `cat-${Date.now()}`;
   const res = (await client.models.Category.create({
     name: input.name.trim(),
-    slug: slug || `cat-${Date.now()}`,
+    slug,
     description: input.description ?? undefined,
     parentId: input.parentId ?? undefined,
     imageUrl: input.imageUrl ?? undefined,
@@ -296,9 +310,13 @@ export async function updateCategory(
   id: string,
   input: Partial<Pick<Category, 'name' | 'slug' | 'description' | 'parentId' | 'imageUrl' | 'sortOrder' | 'isActive'>>
 ): Promise<Category> {
+  const payload = { ...input };
+  if (payload.slug !== undefined) {
+    payload.slug = normalizeSlug(payload.slug) || payload.slug;
+  }
   const { data, errors } = await client.models.Category.update({
     id,
-    ...input,
+    ...payload,
   });
   if (errors?.length || !data) {
     throw new Error(errors?.[0]?.message || 'Failed to update category');
