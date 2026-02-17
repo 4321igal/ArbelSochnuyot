@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Upload, Check, AlertCircle, Plus, Loader2 } from 'lucide-react';
 import { uploadCSVImport } from '@/lib/api/storage';
 import { listCategories, createProduct } from '@/lib/api/products';
@@ -60,8 +60,12 @@ export function AdminImportCSV() {
   const loadCategories = useCallback(async () => {
     const list = await listCategories();
     setCategories(list);
-    if (list.length && !defaultCategoryId) setDefaultCategoryId(list[0].id);
-  }, [defaultCategoryId]);
+    setDefaultCategoryId((prev) => (list.length && !prev ? list[0].id : prev));
+  }, []);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
 
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {

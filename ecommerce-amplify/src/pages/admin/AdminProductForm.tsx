@@ -4,7 +4,7 @@ import {
   getProduct, 
   createProduct, 
   updateProduct, 
-  listCategories,
+  listAllCategories,
   type Category 
 } from '../../lib/api/products';
 import { uploadProductImages, getImageUrl } from '../../lib/api/storage';
@@ -47,13 +47,16 @@ export function AdminProductForm() {
   const [newAttrValue, setNewAttrValue] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
     async function loadData() {
       try {
-        const cats = await listCategories();
+        const cats = await listAllCategories({ includeInactive: true });
+        if (cancelled) return;
         setCategories(cats);
 
         if (isEdit && id) {
           const product = await getProduct(id);
+          if (cancelled) return;
           if (product) {
             setFormData({
               title: product.title,
@@ -74,13 +77,16 @@ export function AdminProductForm() {
           }
         }
       } catch (error) {
-        console.error('Failed to load data:', error);
-        setError('Failed to load data');
+        if (!cancelled) {
+          console.error('Failed to load data:', error);
+          setError('Failed to load data');
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
     loadData();
+    return () => { cancelled = true; };
   }, [id, isEdit]);
 
   const handleChange = (
@@ -204,11 +210,11 @@ export function AdminProductForm() {
 
       if (isEdit && id) {
         await updateProduct(id, productData);
+        navigate('/admin/products');
       } else {
-        await createProduct(productData);
+        const created = await createProduct(productData);
+        navigate('/admin/products', { state: { createdProductId: created.id } });
       }
-
-      navigate('/admin/products');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save product');
     } finally {

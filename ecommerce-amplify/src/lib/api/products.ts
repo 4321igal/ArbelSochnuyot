@@ -128,25 +128,44 @@ export async function listProductsByCategory(
 }
 
 /**
- * List all categories (for storefront – active only)
+ * List all categories (for storefront – active only).
+ * Paginates to return all categories (Amplify default limit would cap results).
  */
 export async function listCategories(): Promise<Category[]> {
-  const { data } = await client.models.Category.list({
-    filter: { isActive: { eq: true } },
-  });
-
-  return (data || []).map(mapCategory);
+  const all: Category[] = [];
+  let nextToken: string | undefined;
+  do {
+    const { data, nextToken: nt } = await client.models.Category.list({
+      filter: { isActive: { eq: true } },
+      limit: 100,
+      nextToken,
+    });
+    all.push(...(data || []).map(mapCategory));
+    nextToken = nt ?? undefined;
+  } while (nextToken);
+  return all;
 }
 
 /**
- * List all categories for admin (optional filter by isActive)
+ * List all categories for admin (optional filter by isActive).
+ * Paginates to return all categories.
  */
 export async function listAllCategories(options?: {
   includeInactive?: boolean;
 }): Promise<Category[]> {
   const filter = options?.includeInactive ? undefined : { isActive: { eq: true } };
-  const { data } = await client.models.Category.list({ filter });
-  return (data || []).map(mapCategory);
+  const all: Category[] = [];
+  let nextToken: string | undefined;
+  do {
+    const { data, nextToken: nt } = await client.models.Category.list({
+      filter,
+      limit: 100,
+      nextToken,
+    });
+    all.push(...(data || []).map(mapCategory));
+    nextToken = nt ?? undefined;
+  } while (nextToken);
+  return all;
 }
 
 /**
@@ -203,7 +222,7 @@ export async function getProductCountByCategoryMap(): Promise<Record<string, num
 }
 
 /**
- * Get category by slug
+ * Get category by slug (returns category even if inactive – UI can show "unavailable").
  */
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
   const { data } = await client.models.Category.list({

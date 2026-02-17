@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { listProducts, deleteProduct, updateProduct, type Product } from '../../lib/api/products';
 import { getImageUrl } from '../../lib/api/storage';
 
@@ -10,17 +10,33 @@ export function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const location = useLocation();
+  const createdProductIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setSelectedIds(new Set());
     loadProducts();
   }, [filter]);
 
+  // After creating a product, refetch list once after short delay (eventual consistency)
+  useEffect(() => {
+    const state = location.state as { createdProductId?: string } | null;
+    const id = state?.createdProductId;
+    if (!id || createdProductIdRef.current === id) return;
+    createdProductIdRef.current = id;
+    const t = setTimeout(() => {
+      loadProducts();
+    }, 600);
+    return () => clearTimeout(t);
+  }, [location.state]);
+
   const loadProducts = async (token?: string) => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const result = await listProducts({
         limit: 20,
@@ -35,6 +51,8 @@ export function AdminProducts() {
       }
       setNextToken(result.nextToken || null);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load products';
+      setLoadError(message);
       console.error('Failed to load products:', error);
     } finally {
       setIsLoading(false);
@@ -131,6 +149,19 @@ export function AdminProducts() {
           </Link>
         </div>
       </div>
+
+      {loadError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+          <span>{loadError}</span>
+          <button
+            type="button"
+            onClick={() => loadProducts()}
+            className="text-red-800 font-medium hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm p-4">

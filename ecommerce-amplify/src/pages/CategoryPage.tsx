@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { ProductGrid } from '../components/product/ProductGrid';
 import { 
   listProductsByCategory, 
   getCategoryBySlug, 
+  listProducts,
   type Product, 
   type Category 
 } from '../lib/api/products';
@@ -36,6 +37,36 @@ export function CategoryPage() {
       
       setIsLoading(true);
       try {
+        // Virtual slugs: "all" = all products, "featured" = featured products
+        if (slug === 'all') {
+          setCategory({
+            id: '__all__',
+            name: 'All Products',
+            slug: 'all',
+            description: 'Browse our full catalog.',
+            sortOrder: 0,
+            isActive: true,
+          });
+          const result = await listProducts({ isActive: true, limit: 20 });
+          setProducts(result.items);
+          setNextToken(result.nextToken ?? null);
+          return;
+        }
+        if (slug === 'featured') {
+          setCategory({
+            id: '__featured__',
+            name: 'Featured',
+            slug: 'featured',
+            description: 'Hand-picked featured products.',
+            sortOrder: 0,
+            isActive: true,
+          });
+          const result = await listProducts({ isActive: true, isFeatured: true, limit: 20 });
+          setProducts(result.items);
+          setNextToken(result.nextToken ?? null);
+          return;
+        }
+
         const cat = await getCategoryBySlug(slug);
         setCategory(cat);
         
@@ -59,12 +90,16 @@ export function CategoryPage() {
     
     setIsLoadingMore(true);
     try {
-      const result = await listProductsByCategory(category.id, { 
-        limit: 20, 
-        nextToken 
-      });
+      let result: { items: Product[]; nextToken?: string | null };
+      if (category.id === '__all__') {
+        result = await listProducts({ isActive: true, limit: 20, nextToken });
+      } else if (category.id === '__featured__') {
+        result = await listProducts({ isActive: true, isFeatured: true, limit: 20, nextToken });
+      } else {
+        result = await listProductsByCategory(category.id, { limit: 20, nextToken });
+      }
       setProducts(prev => [...prev, ...result.items]);
-      setNextToken(result.nextToken || null);
+      setNextToken(result.nextToken ?? null);
     } catch (error) {
       console.error('Failed to load more products:', error);
     } finally {
@@ -124,7 +159,28 @@ export function CategoryPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">Category Not Found</h1>
-        <p className="text-gray-600">The category you're looking for doesn't exist.</p>
+        <p className="text-gray-600 mb-6">The category you're looking for doesn't exist.</p>
+        <Link
+          to="/"
+          className="inline-block bg-indigo-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-indigo-700"
+        >
+          Back to Home
+        </Link>
+      </div>
+    );
+  }
+
+  if (!category.isActive) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">Category Unavailable</h1>
+        <p className="text-gray-600 mb-6">This category is currently not available.</p>
+        <Link
+          to="/"
+          className="inline-block bg-indigo-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-indigo-700"
+        >
+          Back to Home
+        </Link>
       </div>
     );
   }
