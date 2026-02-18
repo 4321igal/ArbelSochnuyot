@@ -1,0 +1,32 @@
+[
+  {
+    "id": "electronics-root",
+    "name": "Electronics",
+    "slug": "electronics",
+    "description": "Electronic devices and gadgets",
+    "parentId": null,
+    "imageUrl": null,
+    "sortOrder": 0,
+    "isActive": true
+  },
+  {
+    "id": "electronics-phones",
+    "name": "Phones & Tablets",
+    "slug": "phones-tablets",
+    "description": "Smartphones and tablets",
+    "parentId": "electronics-root",
+    "imageUrl": null,
+    "sortOrder": 0,
+    "isActive": true
+  },
+  {
+    "id": "home-garden",
+    "name": "Home & Garden",
+    "slug": "home-garden",
+    "description": "Furniture and outdoor",
+    "parentId": null,
+    "imageUrl": null,
+    "sortOrder": 1,
+    "isActive": true
+  }
+]

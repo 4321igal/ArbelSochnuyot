@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Search, Plus, Pencil, Trash2, Eye, EyeOff, Upload } from 'lucide-react';
 import {
   listAllCategories,
   getProductCountByCategoryMap,
@@ -7,6 +7,8 @@ import {
   deleteCategory,
   type Category,
 } from '@/lib/api/products';
+import { importCategoriesFromJson, type CategoryImportSummary } from '@/lib/api/categoriesImport';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { CategoryFormModal } from '@/components/admin/CategoryFormModal';
 
 export interface CategoryWithMeta extends Category {
@@ -51,6 +53,8 @@ function formatDate(s: string | null | undefined): string {
 }
 
 export function AdminCategories() {
+  const { isAdmin } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [categories, setCategories] = useState<CategoryWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +64,8 @@ export function AdminCategories() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importResult, setImportResult] = useState<CategoryImportSummary | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -165,11 +171,54 @@ export function AdminCategories() {
     setModalOpen(true);
   };
 
+  const handleImportJson = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file || !isAdmin) return;
+      setImportLoading(true);
+      setImportResult(null);
+      setError(null);
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const summary = await importCategoriesFromJson(Array.isArray(data) ? data : [data]);
+        setImportResult(summary);
+        await loadData();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Import failed');
+      } finally {
+        setImportLoading(false);
+      }
+    },
+    [isAdmin, loadData]
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900">Category Management</h1>
         <div className="flex flex-wrap items-center gap-2">
+          {isAdmin && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                className="hidden"
+                onChange={handleImportJson}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importLoading}
+                className="inline-flex items-center gap-2 border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50"
+              >
+                <Upload size={18} />
+                {importLoading ? 'Importing…' : 'Import JSON'}
+              </button>
+            </>
+          )}
           <button
             onClick={openAdd}
             className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700"
@@ -179,6 +228,24 @@ export function AdminCategories() {
           </button>
         </div>
       </div>
+
+      {importResult && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
+          <p className="font-medium text-gray-800">Import summary</p>
+          <p className="text-gray-600">
+            Inserted: {importResult.insertedCount}, Updated: {importResult.updatedCount}, Skipped: {importResult.skippedCount}
+          </p>
+          {importResult.errors.length > 0 && (
+            <ul className="mt-2 list-disc pl-5 text-red-700">
+              {importResult.errors.map((err, i) => (
+                <li key={i}>
+                  Row {err.rowIndex}: {err.reason}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="flex flex-wrap gap-4 items-center">

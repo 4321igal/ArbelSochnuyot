@@ -247,8 +247,9 @@ export async function getProductCountByCategoryMap(): Promise<Record<string, num
 
 /**
  * Normalize slug for consistent URLs: lowercase, spaces to hyphens, strip invalid chars.
+ * Exported for use by category JSON import.
  */
-function normalizeSlug(s: string): string {
+export function normalizeSlug(s: string): string {
   return s
     .trim()
     .toLowerCase()
