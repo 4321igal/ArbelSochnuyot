@@ -6,6 +6,8 @@ import { client, type PaginationOptions, type PaginatedResult } from '../amplify
  * Provides typed methods for product operations
  */
 
+export type ProductListStatus = 'active' | 'inactive' | 'deleted' | 'all';
+
 export interface Product {
   id: string;
   title: string;
@@ -24,6 +26,9 @@ export interface Product {
   tags?: (string | null)[] | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  deleteReason?: string | null;
 }
 
 export interface Category {
@@ -40,7 +45,8 @@ export interface Category {
 }
 
 /**
- * List products with pagination
+ * List products with pagination and optional status (active / inactive / deleted / all).
+ * Excludes soft-deleted by default when status is active/inactive; deleted tab shows only soft-deleted.
  */
 export async function listProducts(
   options?: PaginationOptions & {
@@ -48,32 +54,48 @@ export async function listProducts(
     brand?: string;
     isActive?: boolean;
     isFeatured?: boolean;
+    status?: ProductListStatus;
+    search?: string;
   }
 ): Promise<PaginatedResult<Product>> {
   const filter: Record<string, unknown> = {};
-  
-  if (options?.categoryId) {
-    filter.categoryId = { eq: options.categoryId };
-  }
-  if (options?.brand) {
-    filter.brand = { eq: options.brand };
-  }
-  if (options?.isActive !== undefined) {
-    filter.isActive = { eq: options.isActive };
-  }
-  if (options?.isFeatured !== undefined) {
-    filter.isFeatured = { eq: options.isFeatured };
+  if (options?.categoryId) filter.categoryId = { eq: options.categoryId };
+  if (options?.brand) filter.brand = { eq: options.brand };
+  if (options?.isFeatured !== undefined) filter.isFeatured = { eq: options.isFeatured };
+  const status = options?.status ?? 'active';
+  if (status === 'active' || status === 'inactive') {
+    filter.isActive = { eq: status === 'active' };
   }
 
+  const limit = options?.limit || 20;
   const { data, nextToken } = await client.models.Product.list({
     filter: Object.keys(filter).length > 0 ? filter : undefined,
-    limit: options?.limit || 20,
+    limit: status === 'all' || status === 'deleted' ? Math.min(limit * 3, 100) : limit,
     nextToken: options?.nextToken,
   });
 
+  let items = (data || []).map(mapProduct) as Product[];
+
+  if (status === 'deleted') {
+    items = items.filter((p) => p.deletedAt != null);
+  } else if (status === 'active' || status === 'inactive') {
+    items = items.filter((p) => p.deletedAt == null);
+  }
+
+  if (options?.search?.trim()) {
+    const q = options.search.trim().toLowerCase();
+    items = items.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        (p.description?.toLowerCase().includes(q)) ||
+        (p.sku?.toLowerCase().includes(q)) ||
+        (p.brand?.toLowerCase().includes(q))
+    );
+  }
+
   return {
-    items: (data || []).map(mapProduct),
-    nextToken,
+    items: items.slice(0, limit),
+    nextToken: items.length > limit ? nextToken : undefined,
   };
 }
 
@@ -102,11 +124,12 @@ export async function listFeaturedProducts(limit = 8): Promise<Product[]> {
     limit,
   });
 
-  return (data || []).map(mapProduct);
+  const items = (data || []).map(mapProduct).filter((p) => p.deletedAt == null);
+  return items;
 }
 
 /**
- * List products by category
+ * List products by category (excludes soft-deleted)
  */
 export async function listProductsByCategory(
   categoryId: string,
@@ -121,8 +144,9 @@ export async function listProductsByCategory(
     nextToken: options?.nextToken,
   });
 
+  const items = (data || []).map(mapProduct).filter((p) => p.deletedAt == null);
   return {
-    items: (data || []).map(mapProduct),
+    items,
     nextToken,
   };
 }
@@ -245,7 +269,9 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
     limit: 1,
   });
 
-  if (data?.length) return mapCategory(data[0]);
+  if (data?.length) {
+    return mapCategory(data[0]);
+  }
 
   // Fallback: slug in DB might have different casing (e.g. "BarPintoTest2")
   const all = await listAllCategories({ includeInactive: true });
@@ -376,14 +402,100 @@ export async function updateProduct(
 }
 
 /**
- * Delete product (Admin only)
+ * Delete product (hard delete – Admin only). Use softDeleteProduct for soft delete.
  */
 export async function deleteProduct(id: string): Promise<void> {
   const { errors } = await client.models.Product.delete({ id });
-  
-  if (errors) {
-    throw new Error('Failed to delete product');
+  if (errors) throw new Error('Failed to delete product');
+}
+
+/**
+ * Soft delete product (set deletedAt, deletedBy, deleteReason). Any authenticated user.
+ */
+export async function softDeleteProduct(
+  id: string,
+  deletedBy: string,
+  deleteReason?: string
+): Promise<Product> {
+  const updated = await updateProduct(id, {
+    deletedAt: new Date().toISOString(),
+    deletedBy,
+    deleteReason: deleteReason ?? null,
+  });
+  return updated;
+}
+
+/**
+ * Restore soft-deleted product (clear deletedAt, deletedBy, deleteReason). Admin only in UI.
+ */
+export async function restoreProduct(id: string): Promise<Product> {
+  return updateProduct(id, {
+    deletedAt: null,
+    deletedBy: null,
+    deleteReason: null,
+  });
+}
+
+/**
+ * Permanently delete product (DynamoDB delete). Admin only; use from Deleted tab only.
+ */
+export async function hardDeleteProduct(id: string): Promise<void> {
+  return deleteProduct(id);
+}
+
+/**
+ * Bulk soft delete
+ */
+export async function bulkSoftDelete(
+  ids: string[],
+  deletedBy: string,
+  deleteReason?: string
+): Promise<{ success: string[]; failed: { id: string; error: string }[] }> {
+  const success: string[] = [];
+  const failed: { id: string; error: string }[] = [];
+  for (const id of ids) {
+    try {
+      await softDeleteProduct(id, deletedBy, deleteReason);
+      success.push(id);
+    } catch (e) {
+      failed.push({ id, error: e instanceof Error ? e.message : String(e) });
+    }
   }
+  return { success, failed };
+}
+
+/**
+ * Bulk restore
+ */
+export async function bulkRestore(ids: string[]): Promise<{ success: string[]; failed: { id: string; error: string }[] }> {
+  const success: string[] = [];
+  const failed: { id: string; error: string }[] = [];
+  for (const id of ids) {
+    try {
+      await restoreProduct(id);
+      success.push(id);
+    } catch (e) {
+      failed.push({ id, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  return { success, failed };
+}
+
+/**
+ * Bulk hard delete (Admin only)
+ */
+export async function bulkHardDelete(ids: string[]): Promise<{ success: string[]; failed: { id: string; error: string }[] }> {
+  const success: string[] = [];
+  const failed: { id: string; error: string }[] = [];
+  for (const id of ids) {
+    try {
+      await hardDeleteProduct(id);
+      success.push(id);
+    } catch (e) {
+      failed.push({ id, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  return { success, failed };
 }
 
 /**
@@ -409,5 +521,8 @@ function mapProduct(data: unknown): Product {
     tags: p.tags as (string | null)[] | null,
     createdAt: p.createdAt as string | null,
     updatedAt: p.updatedAt as string | null,
+    deletedAt: p.deletedAt as string | null,
+    deletedBy: p.deletedBy as string | null,
+    deleteReason: p.deleteReason as string | null,
   };
 }

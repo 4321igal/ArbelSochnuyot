@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import '@aws-amplify/ui-react/styles.css';
 
 // Layout
@@ -22,13 +22,12 @@ import { AccountPage } from './pages/AccountPage';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
-import { AdminProducts } from './pages/admin/AdminProducts';
+import { UnifiedAdminProducts } from './pages/admin/UnifiedAdminProducts';
 import { AdminProductForm } from './pages/admin/AdminProductForm';
 import { AdminCategories } from './pages/admin/AdminCategories';
 import { AdminOrders } from './pages/admin/AdminOrders';
 import { AdminOrderDetail } from './pages/admin/AdminOrderDetail';
 import { AdminImportCSV } from './pages/admin/AdminImportCSV';
-import { ManagerProduct } from './components/managerProduct';
 
 // Route Guards
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -60,14 +59,14 @@ export default function App() {
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
-          <Route path="products" element={<AdminProducts />} />
+          <Route path="products" element={<UnifiedAdminProducts />} />
           <Route path="products/new" element={<AdminProductForm />} />
           <Route path="products/:id/edit" element={<AdminProductForm />} />
           <Route path="categories" element={<AdminCategories />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="orders/:id" element={<AdminOrderDetail />} />
           <Route path="import-csv" element={<AdminImportCSV />} />
-          <Route path="manager-product" element={<ManagerProduct />} />
+          <Route path="manager-product" element={<Navigate to="/admin/products" replace />} />
         </Route>
       </Route>
     </Routes>

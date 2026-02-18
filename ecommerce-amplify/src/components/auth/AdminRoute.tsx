@@ -27,7 +27,7 @@ export function AdminRoute() {
   }
 
   // דפים פתוחים לכל משתמש מחובר (לא רק Admin)
-  const allowedExact = ['/admin/manager-product', '/admin/import-csv', '/admin/categories'];
+  const allowedExact = ['/admin/import-csv', '/admin/categories'];
   const allowedPrefix = ['/admin/products'];
   if (allowedExact.some((path) => location.pathname === path)) {
     return <Outlet />;

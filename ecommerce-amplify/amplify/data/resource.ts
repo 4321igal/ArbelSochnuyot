@@ -79,6 +79,10 @@ const schema = a.schema({
       tags: a.string().array(),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
+      // Soft delete (admin only for delete/restore)
+      deletedAt: a.datetime(),
+      deletedBy: a.string(),
+      deleteReason: a.string(),
       // Relationships
       category: a.belongsTo('Category', 'categoryId'),
       searchMeta: a.hasOne('ProductSearchMeta', 'productId'),
