@@ -12,6 +12,8 @@ import {
 const BATCH_SIZE = 25;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 500;
+/** Max concurrent API calls to avoid throttling */
+const CONCURRENCY = 12;
 
 export interface DeepDeleteSummary {
   deletedCategoriesCount: number;
@@ -22,75 +24,108 @@ export interface DeepDeleteSummary {
 
 /**
  * Collect all category IDs in the subtree rooted at categoryId (including the root).
- * Uses listCategoriesByParentId with pagination.
+ * Fetches children of multiple parents in parallel for speed.
  */
 export async function gatherCategorySubtreeIds(categoryId: string): Promise<string[]> {
   const ids: string[] = [categoryId];
-  const queue: string[] = [categoryId];
-  while (queue.length > 0) {
-    const parentId = queue.shift()!;
-    let nextToken: string | undefined;
-    do {
-      const { items, nextToken: nt } = await listCategoriesByParentId(parentId, {
-        limit: 100,
-        nextToken,
-      });
-      for (const c of items) {
-        ids.push(c.id);
-        queue.push(c.id);
+  let levelIds: string[] = [categoryId];
+  while (levelIds.length > 0) {
+    const chunkSize = CONCURRENCY;
+    const nextLevel: string[] = [];
+    for (let i = 0; i < levelIds.length; i += chunkSize) {
+      const chunk = levelIds.slice(i, i + chunkSize);
+      const results = await Promise.all(
+        chunk.map((parentId) =>
+          (async () => {
+            const out: string[] = [];
+            let nextToken: string | undefined;
+            do {
+              const { items, nextToken: nt } = await listCategoriesByParentId(parentId, {
+                limit: 100,
+                nextToken,
+              });
+              items.forEach((c) => out.push(c.id));
+              nextToken = nt ?? undefined;
+            } while (nextToken);
+            return out;
+          })()
+        )
+      );
+      for (const childIds of results) {
+        nextLevel.push(...childIds);
+        ids.push(...childIds);
       }
-      nextToken = nt ?? undefined;
-    } while (nextToken);
+    }
+    levelIds = nextLevel;
   }
   return ids;
 }
 
 /**
  * Collect all product IDs that belong to any of the given category IDs.
- * Paginates per category (Amplify has no "in" filter).
+ * Runs category queries in parallel (chunks of CONCURRENCY) for speed.
  */
 export async function gatherProductIdsByCategoryIds(categoryIds: string[]): Promise<string[]> {
   const productIds = new Set<string>();
-  for (const categoryId of categoryIds) {
-    let nextToken: string | undefined;
-    do {
-      const { items, nextToken: nt } = await listProductIdsByCategoryId(categoryId, {
-        limit: 100,
-        nextToken,
-      });
-      items.forEach((p) => productIds.add(p.id));
-      nextToken = nt ?? undefined;
-    } while (nextToken);
+  for (let i = 0; i < categoryIds.length; i += CONCURRENCY) {
+    const chunk = categoryIds.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      chunk.map((categoryId) =>
+        (async () => {
+          const out: string[] = [];
+          let nextToken: string | undefined;
+          do {
+            const { items, nextToken: nt } = await listProductIdsByCategoryId(categoryId, {
+              limit: 100,
+              nextToken,
+            });
+            items.forEach((p) => out.push(p.id));
+            nextToken = nt ?? undefined;
+          } while (nextToken);
+          return out;
+        })()
+      )
+    );
+    results.flat().forEach((id) => productIds.add(id));
   }
   return Array.from(productIds);
 }
 
 /**
- * List ProductSearchMeta by productId and delete each. Paginates.
+ * List ProductSearchMeta by productId and delete each. Processes multiple productIds in parallel.
  */
 async function deleteProductSearchMetaForProductIds(productIds: string[]): Promise<{ deleted: number; errors: Array<{ id: string; reason: string }> }> {
   let deleted = 0;
   const errors: Array<{ id: string; reason: string }> = [];
-  for (const productId of productIds) {
-    let nextToken: string | undefined;
-    do {
-      const { data, nextToken: nt } = await client.models.ProductSearchMeta.list({
-        filter: { productId: { eq: productId } },
-        limit: 100,
-        nextToken,
-      });
-      nextToken = nt ?? undefined;
-      for (const meta of data || []) {
-        const id = (meta as { id: string }).id;
-        try {
-          const { errors: errs } = await client.models.ProductSearchMeta.delete({ id });
-          if (errs?.length) throw new Error(errs[0]?.message ?? String(errs[0]));
-          deleted++;
-        } catch (e) {
-          errors.push({ id, reason: e instanceof Error ? e.message : String(e) });
-        }
-      }
-    } while (nextToken);
+  for (let i = 0; i < productIds.length; i += CONCURRENCY) {
+    const chunk = productIds.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(
+      chunk.map(async (productId) => {
+        const metaIds: string[] = [];
+        let nextToken: string | undefined;
+        do {
+          const { data, nextToken: nt } = await client.models.ProductSearchMeta.list({
+            filter: { productId: { eq: productId } },
+            limit: 100,
+            nextToken,
+          });
+          nextToken = nt ?? undefined;
+          (data || []).forEach((m: { id: string }) => metaIds.push(m.id));
+        } while (nextToken);
+        return metaIds;
+      })
+    );
+    const allMetaIds = results.flat();
+    const deleteResults = await Promise.allSettled(
+      allMetaIds.map((id) => client.models.ProductSearchMeta.delete({ id }))
+    );
+    deleteResults.forEach((r, idx) => {
+      if (r.status === 'fulfilled' && !r.value.errors?.length) deleted++;
+      else if (r.status === 'rejected')
+        errors.push({ id: allMetaIds[idx], reason: r.reason?.message ?? String(r.reason) });
+      else if (r.status === 'fulfilled' && r.value.errors?.length)
+        errors.push({ id: allMetaIds[idx], reason: r.value.errors[0]?.message ?? 'Delete failed' });
+    });
   }
   return { deleted, errors };
 }
@@ -131,7 +166,7 @@ async function deleteProductsInBatches(
 }
 
 /**
- * Delete categories by ID in reverse order (children first). No batching needed for categories (no FK from Product once products are gone).
+ * Delete categories by ID (children first). Deletes in parallel batches of BATCH_SIZE.
  */
 async function deleteCategoriesInOrder(
   categoryIds: string[],
@@ -140,13 +175,13 @@ async function deleteCategoriesInOrder(
   const order = reverseOrder ? [...categoryIds].reverse() : categoryIds;
   const errors: Array<{ id: string; reason: string }> = [];
   let deleted = 0;
-  for (const id of order) {
-    try {
-      await deleteCategory(id);
-      deleted++;
-    } catch (e) {
-      errors.push({ id, reason: e instanceof Error ? e.message : String(e) });
-    }
+  for (let i = 0; i < order.length; i += BATCH_SIZE) {
+    const batch = order.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(batch.map((id) => deleteCategory(id)));
+    results.forEach((r, idx) => {
+      if (r.status === 'fulfilled') deleted++;
+      else errors.push({ id: batch[idx], reason: (r as PromiseRejectedResult).reason?.message ?? 'Delete failed' });
+    });
   }
   return { deleted, errors };
 }
@@ -189,7 +224,7 @@ export interface BulkSoftDeleteResult {
 }
 
 /**
- * Bulk soft-delete categories. Caller must pass deletedBy (e.g. userId). Admin-only in UI.
+ * Bulk soft-delete categories. Runs in parallel batches. Admin-only in UI.
  */
 export async function bulkSoftDeleteCategories(
   categoryIds: string[],
@@ -197,44 +232,44 @@ export async function bulkSoftDeleteCategories(
 ): Promise<BulkSoftDeleteResult> {
   const errors: Array<{ id: string; reason: string }> = [];
   let successCount = 0;
-  for (const id of categoryIds) {
-    try {
-      await softDeleteCategory(id, deletedBy);
-      successCount++;
-    } catch (e) {
-      errors.push({ id, reason: e instanceof Error ? e.message : String(e) });
-    }
+  for (let i = 0; i < categoryIds.length; i += BATCH_SIZE) {
+    const batch = categoryIds.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(batch.map((id) => softDeleteCategory(id, deletedBy)));
+    results.forEach((r, idx) => {
+      if (r.status === 'fulfilled') successCount++;
+      else errors.push({ id: batch[idx], reason: (r as PromiseRejectedResult).reason?.message ?? String((r as PromiseRejectedResult).reason) });
+    });
   }
   return { successCount, errors };
 }
 
 /**
- * Bulk restore soft-deleted categories.
+ * Bulk restore soft-deleted categories. Runs in parallel batches.
  */
 export async function bulkRestoreCategories(categoryIds: string[]): Promise<BulkSoftDeleteResult> {
   const errors: Array<{ id: string; reason: string }> = [];
   let successCount = 0;
-  for (const id of categoryIds) {
-    try {
-      await restoreCategory(id);
-      successCount++;
-    } catch (e) {
-      errors.push({ id, reason: e instanceof Error ? e.message : String(e) });
-    }
+  for (let i = 0; i < categoryIds.length; i += BATCH_SIZE) {
+    const batch = categoryIds.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(batch.map((id) => restoreCategory(id)));
+    results.forEach((r, idx) => {
+      if (r.status === 'fulfilled') successCount++;
+      else errors.push({ id: batch[idx], reason: (r as PromiseRejectedResult).reason?.message ?? String((r as PromiseRejectedResult).reason) });
+    });
   }
   return { successCount, errors };
 }
 
 /**
- * Get category IDs in delete-safe order (children before parents) for a set of ids.
- * Fetches parentId for each; repeatedly deletes ids whose parent is not in set.
+ * Get category IDs in delete-safe order (children before parents). Fetches getCategoryById in parallel batches.
  */
 async function categoryIdsInDeleteOrder(ids: string[]): Promise<string[]> {
   const set = new Set(ids);
   const parentOf = new Map<string, string | null>();
-  for (const id of ids) {
-    const cat = await getCategoryById(id);
-    parentOf.set(id, cat?.parentId ?? null);
+  for (let i = 0; i < ids.length; i += CONCURRENCY) {
+    const chunk = ids.slice(i, i + CONCURRENCY);
+    const cats = await Promise.all(chunk.map((id) => getCategoryById(id)));
+    chunk.forEach((id, idx) => parentOf.set(id, cats[idx]?.parentId ?? null));
   }
   const order: string[] = [];
   let remaining = new Set(set);
@@ -259,11 +294,9 @@ export async function bulkHardDeleteDeep(categoryIds: string[]): Promise<DeepDel
     affectedProductsCount: 0,
     errors: [],
   };
+  const subtrees = await Promise.all(categoryIds.map((id) => gatherCategorySubtreeIds(id)));
   const allCategoryIds = new Set<string>();
-  for (const id of categoryIds) {
-    const subtree = await gatherCategorySubtreeIds(id);
-    subtree.forEach((x) => allCategoryIds.add(x));
-  }
+  subtrees.forEach((arr) => arr.forEach((x) => allCategoryIds.add(x)));
   const categoryIdsList = Array.from(allCategoryIds);
   const productIds = await gatherProductIdsByCategoryIds(categoryIdsList);
 
