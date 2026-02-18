@@ -38,6 +38,10 @@ const schema = a.schema({
       isActive: a.boolean().default(true),
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
+      // Soft delete
+      isDeleted: a.boolean().default(false),
+      deletedAt: a.datetime(),
+      deletedBy: a.string(),
       // Relationships
       parent: a.belongsTo('Category', 'parentId'),
       children: a.hasMany('Category', 'parentId'),

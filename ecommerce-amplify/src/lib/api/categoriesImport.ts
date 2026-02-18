@@ -124,7 +124,7 @@ export async function importCategoriesFromJson(
     return summary;
   }
 
-  const existingCategories = await listAllCategories({ includeInactive: true });
+  const existingCategories = await listAllCategories({ includeInactive: true, includeDeleted: true });
   const existingIds = new Set(existingCategories.map((c) => c.id));
   const existingSlugs = new Set(existingCategories.map((c) => c.slug.toLowerCase()));
   const idToPrevious = new Map<string, Partial<Category>>();

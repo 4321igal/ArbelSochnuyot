@@ -42,6 +42,9 @@ export interface Category {
   isActive: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
 }
 
 /**
@@ -160,7 +163,7 @@ export async function listCategories(): Promise<Category[]> {
   let nextToken: string | undefined;
   do {
     const { data, nextToken: nt } = await client.models.Category.list({
-      filter: { isActive: { eq: true } },
+      filter: { isActive: { eq: true }, isDeleted: { ne: true } },
       limit: 100,
       nextToken,
     });
@@ -171,18 +174,21 @@ export async function listCategories(): Promise<Category[]> {
 }
 
 /**
- * List all categories for admin (optional filter by isActive).
+ * List all categories for admin (optional filter by isActive / includeDeleted).
  * Paginates to return all categories.
  */
 export async function listAllCategories(options?: {
   includeInactive?: boolean;
+  includeDeleted?: boolean;
 }): Promise<Category[]> {
-  const filter = options?.includeInactive ? undefined : { isActive: { eq: true } };
+  const filter: Record<string, unknown> = {};
+  if (!options?.includeInactive) filter.isActive = { eq: true };
+  if (!options?.includeDeleted) filter.isDeleted = { ne: true };
   const all: Category[] = [];
   let nextToken: string | undefined;
   do {
     const { data, nextToken: nt } = await client.models.Category.list({
-      filter,
+      filter: Object.keys(filter).length ? filter : undefined,
       limit: 100,
       nextToken,
     });
@@ -266,7 +272,7 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
   if (!trimmed) return null;
 
   const { data } = await client.models.Category.list({
-    filter: { slug: { eq: trimmed } },
+    filter: { slug: { eq: trimmed }, isDeleted: { ne: true } },
     limit: 1,
   });
 
@@ -275,7 +281,7 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
   }
 
   // Fallback: slug in DB might have different casing (e.g. "BarPintoTest2")
-  const all = await listAllCategories({ includeInactive: true });
+  const all = await listAllCategories({ includeInactive: true, includeDeleted: false });
   const slugLower = trimmed.toLowerCase();
   const found = all.find((c) => c.slug.toLowerCase() === slugLower);
   return found ?? null;
@@ -293,6 +299,9 @@ function mapCategory(cat: any): Category {
     isActive: cat.isActive ?? true,
     createdAt: cat.createdAt ?? null,
     updatedAt: cat.updatedAt ?? null,
+    isDeleted: cat.isDeleted ?? false,
+    deletedAt: cat.deletedAt ?? null,
+    deletedBy: cat.deletedBy ?? null,
   };
 }
 
@@ -331,11 +340,11 @@ export async function createCategory(input: {
 }
 
 /**
- * Update category
+ * Update category (including soft-delete fields)
  */
 export async function updateCategory(
   id: string,
-  input: Partial<Pick<Category, 'name' | 'slug' | 'description' | 'parentId' | 'imageUrl' | 'sortOrder' | 'isActive'>>
+  input: Partial<Pick<Category, 'name' | 'slug' | 'description' | 'parentId' | 'imageUrl' | 'sortOrder' | 'isActive' | 'isDeleted' | 'deletedAt' | 'deletedBy'>>
 ): Promise<Category> {
   const payload = { ...input };
   if (payload.slug !== undefined) {
@@ -352,13 +361,73 @@ export async function updateCategory(
 }
 
 /**
- * Delete category (fails if has children or products – check in UI first)
+ * Delete category (hard delete; fails if has children or products – use hardDeleteCategoryDeep for cascade)
  */
 export async function deleteCategory(id: string): Promise<void> {
   const { errors } = await client.models.Category.delete({ id });
   if (errors?.length) {
     throw new Error(errors[0].message || 'Failed to delete category');
   }
+}
+
+/**
+ * List categories by parentId (paginated). Used for deep delete dependency traversal.
+ */
+export async function listCategoriesByParentId(
+  parentId: string,
+  options?: { limit?: number; nextToken?: string }
+): Promise<PaginatedResult<Category>> {
+  const limit = options?.limit ?? 100;
+  const { data, nextToken } = await client.models.Category.list({
+    filter: { parentId: { eq: parentId } },
+    limit,
+    nextToken: options?.nextToken,
+  });
+  return {
+    items: (data || []).map(mapCategory),
+    nextToken: nextToken ?? undefined,
+  };
+}
+
+/**
+ * List all product IDs for a given categoryId (paginated). Does not filter by isActive/deletedAt.
+ */
+export async function listProductIdsByCategoryId(
+  categoryId: string,
+  options?: { limit?: number; nextToken?: string }
+): Promise<PaginatedResult<{ id: string }>> {
+  const limit = options?.limit ?? 100;
+  const { data, nextToken } = await client.models.Product.list({
+    filter: { categoryId: { eq: categoryId } },
+    limit,
+    nextToken: options?.nextToken,
+  });
+  return {
+    items: (data || []).map((p: any) => ({ id: p.id })),
+    nextToken: nextToken ?? undefined,
+  };
+}
+
+/**
+ * Soft-delete category: set isDeleted=true, deletedAt, deletedBy. Admin-only in UI.
+ */
+export async function softDeleteCategory(id: string, deletedBy: string): Promise<Category> {
+  return updateCategory(id, {
+    isDeleted: true,
+    deletedAt: new Date().toISOString(),
+    deletedBy,
+  });
+}
+
+/**
+ * Restore soft-deleted category: clear isDeleted, deletedAt, deletedBy.
+ */
+export async function restoreCategory(id: string): Promise<Category> {
+  return updateCategory(id, {
+    isDeleted: false,
+    deletedAt: null,
+    deletedBy: null,
+  });
 }
 
 /**
