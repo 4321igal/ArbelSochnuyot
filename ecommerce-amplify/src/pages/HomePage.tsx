@@ -24,7 +24,7 @@ export function HomePage() {
           listCategories(),
         ]);
         setFeaturedProducts(products);
-        setCategories(cats.filter(c => !c.parentId)); // Top-level only
+        setCategories(cats.filter((c) => !c.parentId).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))); // Top-level only, sorted
       } catch (error) {
         console.error('Failed to load home data:', error);
       } finally {
@@ -66,9 +66,11 @@ export function HomePage() {
               <div key={i} className="aspect-square bg-gray-200 rounded-lg animate-pulse" />
             ))}
           </div>
+        ) : categories.length === 0 ? (
+          <p className="text-gray-500">No categories yet.</p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.slice(0, 4).map((category) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {categories.map((category) => (
               <Link
                 key={category.id}
                 to={`/category/${category.slug}`}

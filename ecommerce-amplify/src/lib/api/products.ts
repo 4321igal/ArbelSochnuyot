@@ -159,23 +159,13 @@ export async function listProductsByCategory(
  * Paginates to return all categories (Amplify default limit would cap results).
  */
 export async function listCategories(): Promise<Category[]> {
-  const all: Category[] = [];
-  let nextToken: string | undefined;
-  do {
-    const { data, nextToken: nt } = await client.models.Category.list({
-      filter: { isActive: { eq: true }, isDeleted: { ne: true } },
-      limit: 100,
-      nextToken,
-    });
-    all.push(...(data || []).map(mapCategory));
-    nextToken = nt ?? undefined;
-  } while (nextToken);
+  const all = await listAllCategories({ includeInactive: false, includeDeleted: false });
   return all;
 }
 
 /**
  * List all categories for admin (optional filter by isActive / includeDeleted).
- * Paginates to return all categories.
+ * Excludes soft-deleted client-side when includeDeleted is false, to avoid API errors if schema not yet deployed.
  */
 export async function listAllCategories(options?: {
   includeInactive?: boolean;
@@ -183,7 +173,6 @@ export async function listAllCategories(options?: {
 }): Promise<Category[]> {
   const filter: Record<string, unknown> = {};
   if (!options?.includeInactive) filter.isActive = { eq: true };
-  if (!options?.includeDeleted) filter.isDeleted = { ne: true };
   const all: Category[] = [];
   let nextToken: string | undefined;
   do {
@@ -195,6 +184,9 @@ export async function listAllCategories(options?: {
     all.push(...(data || []).map(mapCategory));
     nextToken = nt ?? undefined;
   } while (nextToken);
+  if (!options?.includeDeleted) {
+    return all.filter((c) => !c.isDeleted);
+  }
   return all;
 }
 
@@ -272,12 +264,14 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
   if (!trimmed) return null;
 
   const { data } = await client.models.Category.list({
-    filter: { slug: { eq: trimmed }, isDeleted: { ne: true } },
+    filter: { slug: { eq: trimmed } },
     limit: 1,
   });
 
   if (data?.length) {
-    return mapCategory(data[0]);
+    const cat = mapCategory(data[0]);
+    if (cat.isDeleted) return null;
+    return cat;
   }
 
   // Fallback: slug in DB might have different casing (e.g. "BarPintoTest2")

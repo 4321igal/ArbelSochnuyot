@@ -51,10 +51,10 @@ export function UnifiedAdminProducts() {
     let cancelled = false;
     (async () => {
       try {
-        const list = await listAllCategories({ includeInactive: true });
+        const list = await listAllCategories({ includeInactive: true, includeDeleted: true });
         if (!cancelled) setCategories(list);
-      } catch {
-        // non-blocking
+      } catch (e) {
+        if (!cancelled) setCategories([]);
       }
     })();
     return () => { cancelled = true; };
