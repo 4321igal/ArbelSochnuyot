@@ -32,6 +32,7 @@ export function CategoryPage() {
   const brand = searchParams.get('brand') || '';
 
   useEffect(() => {
+    let cancelled = false;
     async function loadCategory() {
       if (!slug) return;
       
@@ -39,7 +40,7 @@ export function CategoryPage() {
       try {
         // Virtual slugs: "all" = all products, "featured" = featured products
         if (slug === 'all') {
-          setCategory({
+          if (!cancelled) setCategory({
             id: '__all__',
             name: 'All Products',
             slug: 'all',
@@ -48,12 +49,14 @@ export function CategoryPage() {
             isActive: true,
           });
           const result = await listProducts({ isActive: true, limit: 20 });
-          setProducts(result.items);
-          setNextToken(result.nextToken ?? null);
+          if (!cancelled) {
+            setProducts(result.items);
+            setNextToken(result.nextToken ?? null);
+          }
           return;
         }
         if (slug === 'featured') {
-          setCategory({
+          if (!cancelled) setCategory({
             id: '__featured__',
             name: 'Featured',
             slug: 'featured',
@@ -62,15 +65,19 @@ export function CategoryPage() {
             isActive: true,
           });
           const result = await listProducts({ isActive: true, isFeatured: true, limit: 20 });
-          setProducts(result.items);
-          setNextToken(result.nextToken ?? null);
+          if (!cancelled) {
+            setProducts(result.items);
+            setNextToken(result.nextToken ?? null);
+          }
           return;
         }
 
         const cat = await getCategoryBySlug(slug);
-        setCategory(cat);
+        if (!cancelled) {
+          setCategory(cat);
+        }
         
-        if (cat) {
+        if (cat && !cancelled) {
           const result = await listProductsByCategory(cat.id, { limit: 20 });
           setProducts(result.items);
           setNextToken(result.nextToken || null);
@@ -78,11 +85,12 @@ export function CategoryPage() {
       } catch (error) {
         console.error('Failed to load category:', error);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
     
     loadCategory();
+    return () => { cancelled = true; };
   }, [slug]);
 
   const loadMore = async () => {

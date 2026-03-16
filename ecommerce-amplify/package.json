@@ -10,7 +10,9 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "sandbox": "npx ampx sandbox",
     "sandbox:delete": "npx ampx sandbox delete",
-    "deploy": "npx ampx pipeline-deploy"
+    "deploy": "npx ampx pipeline-deploy",
+    "db:reset-products": "node scripts/reset-products.mjs",
+    "db:reset-products:dry-run": "node scripts/reset-products.mjs --dry-run"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.1.0",

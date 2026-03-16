@@ -1,0 +1,143 @@
+# =========================
+# Node / Package
+# =========================
+
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Optional node REPL history
+.node_repl_history
+
+# =========================
+# Build / Output
+# =========================
+
+dist/
+build/
+.next/
+out/
+.cache/
+.cache-loader/
+.esbuild/
+.vite/
+vite.config.ts.timestamp-*
+storybook-static/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# =========================
+# Environment / Secrets
+# =========================
+
+.env
+.env.*
+*.local
+
+# AWS credentials / config (never commit)
+.aws/
+*.pem
+
+# =========================
+# AWS Amplify (Gen1/Gen2)
+# =========================
+
+# Amplify local / ephemeral state
+amplify/#current-cloud-backend/
+amplify/.config/local-*
+amplify/mock-data/
+amplify/mock-api-resources/
+amplify/backend/amplify-meta.json
+amplify/backend/awscloudformation/
+amplify/.amplify-hosting/
+
+# Amplify CLI artifacts (local only)
+.amplify/
+.amplifyrc
+
+# Amplify Hosting cache
+amplify/.cache/
+
+# =========================
+# Logs
+# =========================
+
+logs/
+*.log
+*.log.*
+*.gz
+
+# =========================
+# OS / System files
+# =========================
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================
+# IDE / Editor
+# =========================
+
+.vscode/
+.idea/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# =========================
+# Temporary / Misc
+# =========================
+
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+
+# Yarn / npm cache
+.pnp.*
+.cache/yarn/
+.npm/
+
+# =========================
+# React / Vite Frontend
+# =========================
+
+# Local dev artifacts
+*.tsbuildinfo
+.eslintcache
+stylelintcache
+
+# Vite / React refresh caches
+vite.config.ts.timestamp-*
+node_modules/.vite/
+
+# Browserslist
+.browserslistrc.local
+
+# =========================
+# Testing / Tooling
+# =========================
+
+jest-html-reporters-*
+jest-stare/
+reports/
+
