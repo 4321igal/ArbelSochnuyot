@@ -9,5 +9,5 @@ export const getAdminSchema = defineFunction({
   entry: './handler.ts',
   timeoutSeconds: 10,
   memoryMB: 128,
-  runtime: 20,
+  runtime: 22, // Node.js 22.x (Node 20.x EOL Apr 2026)
 });

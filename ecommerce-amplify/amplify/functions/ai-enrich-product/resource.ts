@@ -14,7 +14,7 @@ export const aiEnrichProduct = defineFunction({
   entry: './handler.ts',
   timeoutSeconds: 60, // OpenAI can be slow
   memoryMB: 512,
-  runtime: 20, // Node.js 20
+  runtime: 22, // Node.js 22.x (Node 20.x EOL Apr 2026)
   environment: {
     OPENAI_MODEL: 'gpt-4o-mini',
     TARGET_LANGUAGE: 'he',

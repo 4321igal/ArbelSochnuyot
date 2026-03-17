@@ -141,3 +141,4 @@ jest-html-reporters-*
 jest-stare/
 reports/
 
+/*.PNG

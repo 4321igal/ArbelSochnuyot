@@ -13,7 +13,7 @@ export const paymentsWebhook = defineFunction({
   entry: './handler.ts',
   timeoutSeconds: 30,
   memoryMB: 256,
-  runtime: 20, // Node.js 20
+  runtime: 22, // Node.js 22.x (Node 20.x EOL Apr 2026)
   environment: {
     PAYMENT_PROVIDER: 'stripe', // or 'paypal', 'checkout', etc.
     LOG_LEVEL: 'INFO',

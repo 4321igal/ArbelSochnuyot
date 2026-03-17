@@ -14,7 +14,7 @@ export const placeOrder = defineFunction({
   entry: './handler.ts',
   timeoutSeconds: 30,
   memoryMB: 512,
-  runtime: 20, // Node.js 20
+  runtime: 22, // Node.js 22.x (Node 20.x EOL Apr 2026)
   environment: {
     LOG_LEVEL: 'INFO',
   },
