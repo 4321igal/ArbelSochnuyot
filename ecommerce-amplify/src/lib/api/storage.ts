@@ -3,28 +3,29 @@ import { uploadData, getUrl, remove } from 'aws-amplify/storage';
 /**
  * Storage API
  *
- * Uses bucket path: images/ (e.g. bucket name contains ecommercestoragebucket00).
+ * - Store only object KEYS in DB/state (never signed URLs).
+ * - Resolve keys to fresh signed URLs at runtime via getSignedUrl / useStorageImageUrl.
  */
 
 const IMAGES_PREFIX = 'images/';
+const SIGNED_URL_TTL_SEC = 3600; // 1 hour
+const CACHE_TTL_MS = 50 * 60 * 1000; // 50 min (refresh before expiry)
 
 function normalizeKey(key: string): string {
   if (key.startsWith(IMAGES_PREFIX)) return key;
   return `${IMAGES_PREFIX}${key}`;
 }
 
+/** In-memory cache: key -> { url, expiresAt } */
+const signedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+
 export interface UploadResult {
+  /** Persist only this key in DB. Do not store signed URLs. */
   key: string;
-  url: string;
 }
 
 /**
- * Upload product image
- *
- * @param productId - Product ID for path organization
- * @param file - File to upload
- * @param filename - Optional custom filename
- * @returns Upload result with key and URL
+ * Upload product image. Returns only key – persist key in product.images[], never the URL.
  */
 export async function uploadProductImage(
   productId: string,
@@ -34,32 +35,20 @@ export async function uploadProductImage(
   const ext = file.name.split('.').pop() || 'jpg';
   const key = `${IMAGES_PREFIX}products/${productId}/${filename || `${Date.now()}.${ext}`}`;
 
-  const result = await uploadData({
+  await uploadData({
     key,
     data: file,
     options: {
       contentType: file.type,
-      accessLevel: 'guest', // Public read
+      accessLevel: 'guest',
     },
   }).result;
 
-  // Get public URL
-  const urlResult = await getUrl({
-    key: result.key,
-    options: {
-      accessLevel: 'guest',
-      expiresIn: 3600 * 24 * 7, // 7 days
-    },
-  });
-
-  return {
-    key: result.key,
-    url: urlResult.url.toString(),
-  };
+  return { key };
 }
 
 /**
- * Upload category image
+ * Upload category image. Persist returned key in category.imageUrl (field holds key, not URL).
  */
 export async function uploadCategoryImage(
   categoryId: string,
@@ -68,7 +57,7 @@ export async function uploadCategoryImage(
   const ext = file.name.split('.').pop() || 'jpg';
   const key = `${IMAGES_PREFIX}categories/${categoryId}/${Date.now()}.${ext}`;
 
-  const result = await uploadData({
+  await uploadData({
     key,
     data: file,
     options: {
@@ -77,34 +66,62 @@ export async function uploadCategoryImage(
     },
   }).result;
 
-  const urlResult = await getUrl({
-    key: result.key,
-    options: {
-      accessLevel: 'guest',
-      expiresIn: 3600 * 24 * 7,
-    },
-  });
-
-  return {
-    key: result.key,
-    url: urlResult.url.toString(),
-  };
+  return { key };
 }
 
 /**
- * Get signed URL for an existing file
+ * Get a fresh signed URL for a storage key. Cached for CACHE_TTL_MS to avoid repeated calls.
+ * Use this (or useStorageImageUrl) whenever you need to display an image – do not persist the result.
  */
 export async function getSignedUrl(key: string): Promise<string> {
   const normalizedKey = normalizeKey(key);
+  const cached = signedUrlCache.get(normalizedKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.url;
+  }
+
   const result = await getUrl({
     key: normalizedKey,
     options: {
       accessLevel: 'guest',
-      expiresIn: 3600, // 1 hour
+      expiresIn: SIGNED_URL_TTL_SEC,
     },
   });
 
-  return result.url.toString();
+  const url = result.url.toString();
+  signedUrlCache.set(normalizedKey, {
+    url,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  });
+  return url;
+}
+
+/**
+ * Try to extract S3 object key from a signed or plain S3/CloudFront URL (for migrating old DB values).
+ */
+export function extractKeyFromS3Url(url: string): string | null {
+  if (!url || !url.startsWith('http')) return null;
+  try {
+    const u = new URL(url);
+    const path = u.pathname;
+    // Common patterns: /images/... or /products/... or path after bucket name
+    const match = path.match(/\/(images\/[^?]+)/) || path.match(/\/(products\/[^?]+)/) || path.match(/\/(categories\/[^?]+)/);
+    if (match) return match[1];
+    if (path.includes('images/')) {
+      const idx = path.indexOf('images/');
+      return path.slice(idx);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** True if value looks like a storage key (no scheme). */
+export function isStorageKey(value: string | null | undefined): boolean {
+  if (!value || typeof value !== 'string') return false;
+  const t = value.trim();
+  return !t.startsWith('http://') && !t.startsWith('https://');
 }
 
 /**
@@ -137,13 +154,13 @@ export async function uploadProductImages(
 }
 
 /**
- * Upload CSV file for import (stored in S3, then editable + quick add products).
+ * Upload CSV file for import. Returns key only; use getSignedUrl(key) when you need a download URL.
  */
 export async function uploadCSVImport(file: File): Promise<UploadResult> {
   const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const key = `${IMAGES_PREFIX}imports/${Date.now()}-${safeName}`;
 
-  const result = await uploadData({
+  await uploadData({
     key,
     data: file,
     options: {
@@ -152,34 +169,21 @@ export async function uploadCSVImport(file: File): Promise<UploadResult> {
     },
   }).result;
 
-  const urlResult = await getUrl({
-    key: result.key,
-    options: {
-      accessLevel: 'guest',
-      expiresIn: 3600 * 24 * 7,
-    },
-  });
-
-  return {
-    key: result.key,
-    url: urlResult.url.toString(),
-  };
+  return { key };
 }
 
+/** Placeholder used when no image or when display should use StorageImage for key-based URLs. */
+export const PLACEHOLDER_IMAGE = '/placeholder.png';
+
 /**
- * Get image URL from key or full URL
- * Handles S3 keys (with or without images/ prefix) and full URLs
+ * @deprecated Use StorageImage component or useStorageImageUrl for display. Do not use for S3 keys.
+ * Returns placeholder for keys and for S3-looking URLs (to avoid showing expired URLs).
  */
 export function getImageUrl(keyOrUrl: string | null | undefined): string {
-  if (!keyOrUrl) {
-    return '/placeholder.png';
-  }
-
+  if (!keyOrUrl) return PLACEHOLDER_IMAGE;
   if (keyOrUrl.startsWith('http://') || keyOrUrl.startsWith('https://')) {
+    if (keyOrUrl.includes('amazonaws.com') || keyOrUrl.includes('X-Amz')) return PLACEHOLDER_IMAGE;
     return keyOrUrl;
   }
-
-  // S3 key: ensure images/ prefix for bucket path
-  const key = normalizeKey(keyOrUrl);
-  return `/api/image/${encodeURIComponent(key)}`;
+  return PLACEHOLDER_IMAGE;
 }

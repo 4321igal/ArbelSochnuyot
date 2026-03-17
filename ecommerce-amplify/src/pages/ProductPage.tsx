@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getProduct, type Product } from '../lib/api/products';
 import { useCart } from '../lib/cart/CartContext';
-import { getImageUrl } from '../lib/api/storage';
+import { StorageImage } from '@/components/StorageImage';
 
 /**
  * Product Detail Page
@@ -100,8 +100,8 @@ export function ProductPage() {
         <div className="space-y-4">
           {/* Main Image */}
           <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-            <img
-              src={getImageUrl(images[selectedImage])}
+            <StorageImage
+              keyOrUrl={images[selectedImage]}
               alt={product.title}
               className="w-full h-full object-cover"
             />
@@ -118,8 +118,8 @@ export function ProductPage() {
                     idx === selectedImage ? 'border-indigo-600' : 'border-transparent'
                   }`}
                 >
-                  <img
-                    src={getImageUrl(img)}
+                  <StorageImage
+                    keyOrUrl={img}
                     alt={`${product.title} - ${idx + 1}`}
                     className="w-full h-full object-cover"
                   />

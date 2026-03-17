@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../lib/cart/CartContext';
 import { useAuth } from '../lib/auth/AuthContext';
-import { getImageUrl } from '../lib/api/storage';
+import { StorageImage } from '@/components/StorageImage';
 
 /**
  * Cart Page
@@ -50,8 +50,8 @@ export function CartPage() {
                 to={`/product/${item.productId}`}
                 className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0"
               >
-                <img
-                  src={getImageUrl(item.imageSnapshot)}
+                <StorageImage
+                  keyOrUrl={item.imageSnapshot}
                   alt={item.titleSnapshot}
                   className="w-full h-full object-cover"
                 />

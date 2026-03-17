@@ -7,7 +7,8 @@ import {
   listAllCategories,
   type Category 
 } from '../../lib/api/products';
-import { uploadProductImages, getImageUrl } from '../../lib/api/storage';
+import { uploadProductImages } from '../../lib/api/storage';
+import { StorageImage } from '@/components/StorageImage';
 import { client } from '../../lib/amplify/client';
 
 /**
@@ -188,7 +189,7 @@ export function AdminProductForm() {
       if (newImages.length > 0) {
         const productId = id || `temp-${Date.now()}`;
         const uploaded = await uploadProductImages(productId, newImages);
-        images = [...images, ...uploaded.map(u => u.url)];
+        images = [...images, ...uploaded.map(u => u.key)];
       }
 
       const productData = {
@@ -419,7 +420,7 @@ export function AdminProductForm() {
             {/* Existing images */}
             {formData.images.map((img, idx) => (
               <div key={idx} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                <img src={getImageUrl(img)} alt="" className="w-full h-full object-cover" />
+                <StorageImage keyOrUrl={img} alt="" className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => removeImage(idx, false)}

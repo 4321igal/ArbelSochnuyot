@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '../../lib/api/products';
 import { useCart } from '../../lib/cart/CartContext';
-import { getImageUrl } from '../../lib/api/storage';
+import { StorageImage } from '@/components/StorageImage';
 
 /**
  * Product Card Component
@@ -39,11 +39,10 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
     >
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-gray-100">
-        <img
-          src={getImageUrl(product.images?.[0])}
+        <StorageImage
+          keyOrUrl={product.images?.[0]}
           alt={product.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          loading="lazy"
         />
         
         {/* Discount Badge */}

@@ -14,7 +14,7 @@ import {
   type Category,
   type ProductListStatus,
 } from '../../lib/api/products';
-import { getImageUrl } from '../../lib/api/storage';
+import { StorageImage } from '@/components/StorageImage';
 import { useAuth } from '../../lib/auth/AuthContext';
 import { FilterTabs } from '../../components/adminProducts/FilterTabs';
 import { BulkActionsBar } from '../../components/adminProducts/BulkActionsBar';
@@ -351,8 +351,8 @@ export function UnifiedAdminProducts() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                          <img
-                            src={getImageUrl(product.images?.[0])}
+                          <StorageImage
+                            keyOrUrl={product.images?.[0]}
                             alt={product.title}
                             className="h-full w-full object-cover"
                           />

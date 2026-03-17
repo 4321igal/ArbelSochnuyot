@@ -20,7 +20,6 @@ import {
   type Product as ApiProduct,
   type Category,
 } from '@/lib/api/products';
-import { getImageUrl } from '@/lib/api/storage';
 import { uploadProductImage } from '@/lib/api/storage';
 
 const initialFormData: CreateProductDTO = {
@@ -38,7 +37,7 @@ function mapApiToManager(api: ApiProduct, categoryName: string): ManagerProductT
     rawDescription: api.description ?? undefined,
     category: categoryName,
     categoryId: api.categoryId,
-    image: firstImage ? getImageUrl(firstImage) : 'https://via.placeholder.com/300x300/cccccc/ffffff?text=No+Image',
+    image: firstImage ?? '',
     status: api.isActive ? 'ready' : 'pending',
     confidence: api.isActive ? 1 : 0,
     createdAt: api.createdAt ?? new Date().toISOString(),
@@ -199,8 +198,8 @@ function ManagerProductContent() {
         sku: formData.barcode || undefined,
       });
       if (imageUploadType === 'upload' && imageFile) {
-        const { url } = await uploadProductImage(created.id, imageFile);
-        await updateProduct(created.id, { images: [url] });
+        const { key } = await uploadProductImage(created.id, imageFile);
+        await updateProduct(created.id, { images: [key] });
       }
       setShowAddModal(false);
       setFormData(initialFormData);

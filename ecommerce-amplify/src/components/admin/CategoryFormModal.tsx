@@ -155,8 +155,8 @@ export function CategoryFormModal({
             isActive,
           });
           if (imageMode === 'upload' && imageFile) {
-            const { url } = await uploadCategoryImage(categoryId, imageFile);
-            await updateCategory(categoryId, { imageUrl: url });
+            const { key } = await uploadCategoryImage(categoryId, imageFile);
+            await updateCategory(categoryId, { imageUrl: key });
           }
         } else {
           const created = await createCategory({
@@ -169,8 +169,8 @@ export function CategoryFormModal({
             isActive,
           });
           if (imageMode === 'upload' && imageFile) {
-            const { url } = await uploadCategoryImage(created.id, imageFile);
-            await updateCategory(created.id, { imageUrl: url });
+            const { key } = await uploadCategoryImage(created.id, imageFile);
+            await updateCategory(created.id, { imageUrl: key });
           }
         }
         onSaved();

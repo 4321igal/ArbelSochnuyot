@@ -1,4 +1,5 @@
 import { RefreshCw, Edit2, Trash2, Eye } from 'lucide-react';
+import { StorageImage } from '@/components/StorageImage';
 import type { Product } from './types';
 
 interface ProductGridProps {
@@ -14,11 +15,10 @@ export default function ProductGrid({ products, onRunAI, onEdit, onDelete }: Pro
       {products.map(product => (
         <div key={product.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
           <div className="relative h-48 bg-gray-100 rounded-t-lg overflow-hidden">
-            <img 
-              src={product.image} 
+            <StorageImage
+              keyOrUrl={product.image || null}
               alt={product.rawName}
               className="w-full h-full object-cover"
-              onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x300/cccccc/ffffff?text=No+Image'}
             />
             {product.isOverridden && (
               <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs">

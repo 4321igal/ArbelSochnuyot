@@ -1,4 +1,5 @@
 import { X, AlertCircle } from 'lucide-react';
+import { StorageImage } from '@/components/StorageImage';
 import type { Product } from './types';
 import type { CategoryOption } from './AddProductModal';
 
@@ -46,11 +47,10 @@ export default function EditProductModal({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">תמונת מוצר</label>
                 <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                  <img 
-                    src={product.image} 
+                  <StorageImage
+                    keyOrUrl={product.image || null}
                     alt={product.rawName}
                     className="w-full h-full object-contain"
-                    onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x300/cccccc/ffffff?text=No+Image'}
                   />
                 </div>
               </div>

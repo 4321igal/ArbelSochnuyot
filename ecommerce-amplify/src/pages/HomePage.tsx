@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { StorageImage } from '@/components/StorageImage';
 import { ProductGrid } from '../components/product/ProductGrid';
 import { listFeaturedProducts, listCategories, type Product, type Category } from '../lib/api/products';
 
@@ -77,8 +78,8 @@ export function HomePage() {
                 className="group relative aspect-square rounded-lg overflow-hidden bg-gray-100"
               >
                 {category.imageUrl ? (
-                  <img
-                    src={category.imageUrl}
+                  <StorageImage
+                    keyOrUrl={category.imageUrl}
                     alt={category.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                   />

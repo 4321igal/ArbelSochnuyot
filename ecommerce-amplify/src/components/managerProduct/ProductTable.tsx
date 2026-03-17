@@ -1,4 +1,5 @@
 import { RefreshCw, Edit2, Trash2 } from 'lucide-react';
+import { StorageImage } from '@/components/StorageImage';
 import type { Product } from './types';
 
 interface ProductTableProps {
@@ -27,11 +28,10 @@ export default function ProductTable({ products, onRunAI, onEdit, onDelete }: Pr
             <tr key={product.id} className="hover:bg-gray-50">
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <img 
-                    src={product.image} 
+                  <StorageImage
+                    keyOrUrl={product.image || null}
                     alt={product.rawName}
                     className="w-12 h-12 rounded-lg object-cover"
-                    onError={(e) => (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48x48/cccccc/ffffff?text=?'}
                   />
                   <div>
                     <div className="font-medium text-gray-900">{product.rawName}</div>

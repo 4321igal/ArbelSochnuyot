@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { listProducts, deleteProduct, updateProduct, type Product } from '../../lib/api/products';
-import { getImageUrl } from '../../lib/api/storage';
+import { StorageImage } from '@/components/StorageImage';
 
 /**
  * Admin Products Page - CRUD for products
@@ -236,8 +236,8 @@ export function AdminProducts() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-                        <img
-                          src={getImageUrl(product.images?.[0])}
+                        <StorageImage
+                          keyOrUrl={product.images?.[0]}
                           alt={product.title}
                           className="w-full h-full object-cover"
                         />
