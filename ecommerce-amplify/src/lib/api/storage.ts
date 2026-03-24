@@ -153,6 +153,50 @@ export async function uploadProductImages(
   return results;
 }
 
+const HERO_SAFE_NAME = /^[a-zA-Z0-9._-]+$/;
+
+/**
+ * Upload home hero background image. Returns S3 key only (persist in SiteHero.imageKey).
+ * Uses Amplify Storage managed upload (same bucket access as presigned PUT after IAM policy).
+ *
+ * Optional onProgress reports 0–100 for UI (best-effort; not byte-accurate).
+ */
+export async function uploadHeroImage(
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<UploadResult> {
+  const base =
+    file.name && HERO_SAFE_NAME.test(file.name)
+      ? file.name
+      : `upload.${file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'}`;
+  const safe = base.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120);
+  const key = `${IMAGES_PREFIX}hero/${Date.now()}-${safe}`;
+
+  onProgress?.(0);
+  const task = uploadData({
+    key,
+    data: file,
+    options: {
+      contentType: file.type || 'image/jpeg',
+      accessLevel: 'guest',
+    },
+  });
+
+  let fake = 5;
+  const tick = window.setInterval(() => {
+    fake = Math.min(fake + 10, 85);
+    onProgress?.(fake);
+  }, 120);
+
+  try {
+    await task.result;
+  } finally {
+    window.clearInterval(tick);
+  }
+  onProgress?.(100);
+  return { key };
+}
+
 /**
  * Upload CSV file for import. Returns key only; use getSignedUrl(key) when you need a download URL.
  */

@@ -1,71 +1,59 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import '@aws-amplify/ui-react/styles.css';
 
-// Layout
 import { MainLayout } from './components/layout/MainLayout';
 import { AdminLayout } from './components/layout/AdminLayout';
-
-// Public Pages
-import { HomePage } from './pages/HomePage';
-import { CategoryPage } from './pages/CategoryPage';
-import { ProductPage } from './pages/ProductPage';
-import { SearchPage } from './pages/SearchPage';
-import { CartPage } from './pages/CartPage';
-
-// Auth Pages
-import { AuthPage } from './pages/AuthPage';
-
-// Protected Pages
-import { CheckoutPage } from './pages/CheckoutPage';
-import { OrdersPage } from './pages/OrdersPage';
-import { AccountPage } from './pages/AccountPage';
-
-// Admin Pages
-import { AdminDashboard } from './pages/admin/AdminDashboard';
-import { UnifiedAdminProducts } from './pages/admin/UnifiedAdminProducts';
-import { AdminProductForm } from './pages/admin/AdminProductForm';
-import { AdminCategories } from './pages/admin/AdminCategories';
-import { AdminOrders } from './pages/admin/AdminOrders';
-import { AdminOrderDetail } from './pages/admin/AdminOrderDetail';
-import { AdminImportCSV } from './pages/admin/AdminImportCSV';
-
-// Route Guards
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AdminRoute } from './components/auth/AdminRoute';
+import {
+  HomePage,
+  CategoryPage,
+  ProductPage,
+  SearchPage,
+  CartPage,
+  AuthPage,
+  CheckoutPage,
+  OrdersPage,
+  AccountPage,
+  AdminDashboard,
+  UnifiedAdminProducts,
+  AdminProductForm,
+  AdminCategories,
+  AdminOrders,
+  AdminOrderDetail,
+  AdminImportCSV,
+  AdminHeroPage,
+  LazySuspense,
+} from './routes/lazy';
 
 export default function App() {
   return (
     <Routes>
-      {/* Public Routes */}
       <Route path="/" element={<MainLayout />}>
-        <Route index element={<HomePage />} />
-        <Route path="category/:slug" element={<CategoryPage />} />
-        <Route path="product/:id" element={<ProductPage />} />
-        <Route path="search" element={<SearchPage />} />
-        <Route path="cart" element={<CartPage />} />
-        
-        {/* Auth */}
-        <Route path="auth" element={<AuthPage />} />
+        <Route index element={<LazySuspense><HomePage /></LazySuspense>} />
+        <Route path="category/:slug" element={<LazySuspense><CategoryPage /></LazySuspense>} />
+        <Route path="product/:id" element={<LazySuspense><ProductPage /></LazySuspense>} />
+        <Route path="search" element={<LazySuspense><SearchPage /></LazySuspense>} />
+        <Route path="cart" element={<LazySuspense><CartPage /></LazySuspense>} />
+        <Route path="auth" element={<LazySuspense><AuthPage /></LazySuspense>} />
 
-        {/* Protected Customer Routes */}
         <Route element={<ProtectedRoute />}>
-          <Route path="checkout" element={<CheckoutPage />} />
-          <Route path="orders" element={<OrdersPage />} />
-          <Route path="account" element={<AccountPage />} />
+          <Route path="checkout" element={<LazySuspense><CheckoutPage /></LazySuspense>} />
+          <Route path="orders" element={<LazySuspense><OrdersPage /></LazySuspense>} />
+          <Route path="account" element={<LazySuspense><AccountPage /></LazySuspense>} />
         </Route>
       </Route>
 
-      {/* Admin Routes */}
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="products" element={<UnifiedAdminProducts />} />
-          <Route path="products/new" element={<AdminProductForm />} />
-          <Route path="products/:id/edit" element={<AdminProductForm />} />
-          <Route path="categories" element={<AdminCategories />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="orders/:id" element={<AdminOrderDetail />} />
-          <Route path="import-csv" element={<AdminImportCSV />} />
+          <Route index element={<LazySuspense><AdminDashboard /></LazySuspense>} />
+          <Route path="products" element={<LazySuspense><UnifiedAdminProducts /></LazySuspense>} />
+          <Route path="products/new" element={<LazySuspense><AdminProductForm /></LazySuspense>} />
+          <Route path="products/:id/edit" element={<LazySuspense><AdminProductForm /></LazySuspense>} />
+          <Route path="categories" element={<LazySuspense><AdminCategories /></LazySuspense>} />
+          <Route path="orders" element={<LazySuspense><AdminOrders /></LazySuspense>} />
+          <Route path="orders/:id" element={<LazySuspense><AdminOrderDetail /></LazySuspense>} />
+          <Route path="import-csv" element={<LazySuspense><AdminImportCSV /></LazySuspense>} />
+          <Route path="hero" element={<LazySuspense><AdminHeroPage /></LazySuspense>} />
           <Route path="manager-product" element={<Navigate to="/admin/products" replace />} />
         </Route>
       </Route>

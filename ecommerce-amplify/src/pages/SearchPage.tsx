@@ -1,49 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProductGrid } from '../components/product/ProductGrid';
 import { listProducts, type Product } from '../lib/api/products';
-import { useEffect } from 'react';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * Search Page
+ * Debounces search so rapid URL/input changes don't trigger multiple API calls.
  */
 export function SearchPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
-  
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+
   const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    async function search() {
-      setIsLoading(true);
-      try {
-        // Note: This is a basic implementation
-        // For production, implement search via OpenSearch or DynamoDB
-        const result = await listProducts({ isActive: true, limit: 50 });
-        
-        // Client-side filter (not ideal for production)
-        const filtered = result.items.filter(p => 
-          p.title.toLowerCase().includes(query.toLowerCase()) ||
-          p.description?.toLowerCase().includes(query.toLowerCase()) ||
-          p.brand?.toLowerCase().includes(query.toLowerCase())
-        );
-        
-        setProducts(filtered);
-      } catch (error) {
-        console.error('Search failed:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    
-    if (query) {
-      search();
-    } else {
+    const t = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    if (!debouncedQuery.trim()) {
       setProducts([]);
       setIsLoading(false);
+      return;
     }
-  }, [query]);
+    let cancelled = false;
+    setIsLoading(true);
+    (async () => {
+      try {
+        const result = await listProducts({ isActive: true, limit: 50 });
+        if (cancelled) return;
+        const q = debouncedQuery.trim().toLowerCase();
+        const filtered = result.items.filter(
+          (p) =>
+            p.title.toLowerCase().includes(q) ||
+            p.description?.toLowerCase().includes(q) ||
+            p.brand?.toLowerCase().includes(q)
+        );
+        setProducts(filtered);
+      } catch (error) {
+        if (!cancelled) console.error('Search failed:', error);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [debouncedQuery]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -51,19 +57,19 @@ export function SearchPage() {
         Search Results
       </h1>
       <p className="text-gray-600 mb-8">
-        {query ? (
+        {debouncedQuery ? (
           <>
-            {products.length} results for "{query}"
+            {products.length} results for "{debouncedQuery}"
           </>
         ) : (
           'Enter a search term to find products'
         )}
       </p>
 
-      <ProductGrid 
-        products={products} 
+      <ProductGrid
+        products={products}
         isLoading={isLoading}
-        emptyMessage={query ? `No products found for "${query}"` : 'Enter a search term'}
+        emptyMessage={debouncedQuery ? `No products found for "${debouncedQuery}"` : 'Enter a search term'}
       />
     </div>
   );

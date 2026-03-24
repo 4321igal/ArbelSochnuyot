@@ -47,19 +47,6 @@ export function UnifiedAdminProducts() {
     return () => clearTimeout(t);
   }, [search]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const list = await listAllCategories({ includeInactive: true, includeDeleted: true });
-        if (!cancelled) setCategories(list);
-      } catch (e) {
-        if (!cancelled) setCategories([]);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
   const loadProducts = useCallback(
     async (token?: string) => {
       setIsLoading(true);
@@ -87,10 +74,34 @@ export function UnifiedAdminProducts() {
     [status, searchDebounced]
   );
 
+  // Single effect: load categories + products in parallel (avoids sequential requests and double loading state)
   useEffect(() => {
     setSelectedIds(new Set());
-    loadProducts();
-  }, [loadProducts]);
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+    (async () => {
+      try {
+        const [list, result] = await Promise.all([
+          listAllCategories({ includeInactive: true, includeDeleted: true }),
+          listProducts({ limit: 20, status, search: searchDebounced || undefined }),
+        ]);
+        if (!cancelled) {
+          setCategories(list);
+          setProducts(result.items);
+          setNextToken(result.nextToken || null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : 'Failed to load';
+          setLoadError(message);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [status, searchDebounced]);
 
   useEffect(() => {
     const state = location.state as { createdProductId?: string } | null;

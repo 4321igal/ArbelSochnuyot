@@ -284,6 +284,26 @@ const schema = a.schema({
     ]),
 
   // ============================================
+  // SITE HERO (home page marketing block — singleton id hero-main)
+  // ============================================
+  SiteHero: a
+    .model({
+      id: a.id().required(),
+      title: a.string().required(),
+      subtitle: a.string(),
+      ctaText: a.string(),
+      ctaLink: a.string(),
+      /** S3 object key under images/hero/… — resolve to URL at runtime only */
+      imageKey: a.string(),
+      updatedAt: a.datetime(),
+    })
+    .authorization((allow) => [
+      allow.guest().to(['read']),
+      allow.authenticated().to(['read']),
+      allow.group('Admin').to(['create', 'read', 'update', 'delete']),
+    ]),
+
+  // ============================================
   // CUSTOM MUTATIONS (Lambda Functions)
   // ============================================
   

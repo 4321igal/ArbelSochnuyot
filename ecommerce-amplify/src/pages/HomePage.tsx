@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { StorageImage } from '@/components/StorageImage';
+import { PublicHeroSection } from '@/components/hero/PublicHeroSection';
 import { ProductGrid } from '../components/product/ProductGrid';
-import { listFeaturedProducts, listCategories, type Product, type Category } from '../lib/api/products';
+import { listFeaturedProducts, listTopLevelCategories, type Product, type Category } from '../lib/api/products';
+import { getSiteHero, resolvePublicHero } from '@/lib/api/siteHero';
+import type { SiteHero } from '@/lib/api/siteHero';
 
 /**
  * Home Page
@@ -15,19 +18,23 @@ import { listFeaturedProducts, listCategories, type Product, type Category } fro
 export function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [hero, setHero] = useState<SiteHero>(() => resolvePublicHero(null));
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [products, cats] = await Promise.all([
+        const [products, cats, heroRow] = await Promise.all([
           listFeaturedProducts(8),
-          listCategories(),
+          listTopLevelCategories(20),
+          getSiteHero(),
         ]);
         setFeaturedProducts(products);
-        setCategories(cats.filter((c) => !c.parentId).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))); // Top-level only, sorted
+        setCategories(cats);
+        setHero(resolvePublicHero(heroRow));
       } catch (error) {
         console.error('Failed to load home data:', error);
+        setHero(resolvePublicHero(null));
       } finally {
         setIsLoading(false);
       }
@@ -37,25 +44,8 @@ export function HomePage() {
 
   return (
     <div>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-          <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Shop the Best Deals
-            </h1>
-            <p className="text-xl text-indigo-100 mb-8">
-              Discover amazing products at unbeatable prices. Free shipping on orders over ₪200.
-            </p>
-            <Link
-              to="/category/all"
-              className="inline-block bg-white text-indigo-600 font-bold px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              Shop Now
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Hero — CMS-driven; defaults until API returns */}
+      <PublicHeroSection hero={hero} />
 
       {/* Categories */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

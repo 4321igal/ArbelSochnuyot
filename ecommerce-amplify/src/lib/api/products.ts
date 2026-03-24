@@ -164,6 +164,21 @@ export async function listCategories(): Promise<Category[]> {
 }
 
 /**
+ * List top-level categories only (parentId null/absent). Single request, capped – use for home/nav.
+ * Avoids fetching full category tree when only roots are needed.
+ */
+export async function listTopLevelCategories(limit = 30): Promise<Category[]> {
+  const { data } = await client.models.Category.list({
+    filter: { isActive: { eq: true } },
+    limit: Math.min(limit * 2, 100),
+  });
+  const mapped = (data || []).map(mapCategory).filter((c) => !c.isDeleted && !c.parentId);
+  return mapped
+    .slice(0, limit)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+}
+
+/**
  * List all categories for admin (optional filter by isActive / includeDeleted).
  * Excludes soft-deleted client-side when includeDeleted is false, to avoid API errors if schema not yet deployed.
  */
@@ -274,11 +289,11 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
     return cat;
   }
 
-  // Fallback: slug in DB might have different casing (e.g. "BarPintoTest2")
-  const all = await listAllCategories({ includeInactive: true, includeDeleted: false });
+  // Fallback: slug in DB might have different casing. Fetch limited set to avoid full scan.
+  const { data: list } = await client.models.Category.list({ limit: 200 });
   const slugLower = trimmed.toLowerCase();
-  const found = all.find((c) => c.slug.toLowerCase() === slugLower);
-  return found ?? null;
+  const found = (list || []).find((c: any) => !c.isDeleted && (c.slug || '').toLowerCase() === slugLower);
+  return found ? mapCategory(found) : null;
 }
 
 function mapCategory(cat: any): Category {

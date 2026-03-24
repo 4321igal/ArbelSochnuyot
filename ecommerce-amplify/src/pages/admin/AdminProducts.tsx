@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { listProducts, deleteProduct, updateProduct, type Product } from '../../lib/api/products';
 import { StorageImage } from '@/components/StorageImage';
@@ -17,24 +17,7 @@ export function AdminProducts() {
   const location = useLocation();
   const createdProductIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    setSelectedIds(new Set());
-    loadProducts();
-  }, [filter]);
-
-  // After creating a product, refetch list once after short delay (eventual consistency)
-  useEffect(() => {
-    const state = location.state as { createdProductId?: string } | null;
-    const id = state?.createdProductId;
-    if (!id || createdProductIdRef.current === id) return;
-    createdProductIdRef.current = id;
-    const t = setTimeout(() => {
-      loadProducts();
-    }, 600);
-    return () => clearTimeout(t);
-  }, [location.state]);
-
-  const loadProducts = async (token?: string) => {
+  const loadProducts = useCallback(async (token?: string) => {
     setIsLoading(true);
     setLoadError(null);
     try {
@@ -57,7 +40,22 @@ export function AdminProducts() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+    loadProducts();
+  }, [loadProducts]);
+
+  // After creating a product, refetch list once after short delay (eventual consistency)
+  useEffect(() => {
+    const state = location.state as { createdProductId?: string } | null;
+    const id = state?.createdProductId;
+    if (!id || createdProductIdRef.current === id) return;
+    createdProductIdRef.current = id;
+    const t = setTimeout(() => loadProducts(), 600);
+    return () => clearTimeout(t);
+  }, [location.state, loadProducts]);
 
   const handleToggleActive = async (product: Product) => {
     try {

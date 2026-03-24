@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { generateClient } from 'aws-amplify/data';
 
 const client = generateClient<any>();
+
+const PAGE_SIZE = 25;
 
 type Order = any;
 
@@ -27,38 +29,43 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [nextToken, setNextToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    loadOrders();
-  }, [statusFilter]);
-
-  async function loadOrders() {
-    setLoading(true);
+  const loadOrders = useCallback(async (token?: string | null) => {
+    const isAppend = !!token;
+    if (isAppend) setLoadingMore(true);
+    else setLoading(true);
     try {
-      const filter = statusFilter !== 'all' 
-        ? { status: { eq: statusFilter } }
-        : undefined;
-
-      const { data } = await client.models.Order.list({
+      const filter = statusFilter !== 'all' ? { status: { eq: statusFilter } } : undefined;
+      const { data, nextToken: nt } = await client.models.Order.list({
         filter,
-        limit: 100,
+        limit: PAGE_SIZE,
+        nextToken: token || undefined,
       });
-
-      // Sort by createdAt descending
-      const sorted = [...data].sort((a, b) => 
-        new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+      const sorted = [...(data || [])].sort(
+        (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
       );
-      
-      setOrders(sorted);
+      if (isAppend) {
+        setOrders((prev) => [...prev, ...sorted]);
+      } else {
+        setOrders(sorted);
+      }
+      setNextToken(nt ?? null);
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }
+  }, [statusFilter]);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
 
   const filteredOrders = orders.filter(order => {
     if (!searchTerm) return true;
@@ -95,7 +102,7 @@ export function AdminOrders() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
         <button
-          onClick={loadOrders}
+          onClick={() => loadOrders()}
           className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -155,6 +162,7 @@ export function AdminOrders() {
             </p>
           </div>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -221,6 +229,19 @@ export function AdminOrders() {
               </tbody>
             </table>
           </div>
+          {nextToken && (
+            <div className="flex justify-center py-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => loadOrders(nextToken)}
+                disabled={loadingMore}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {loadingMore ? 'Loading…' : 'Load more'}
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
 

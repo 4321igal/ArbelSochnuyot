@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { client } from '../amplify/client';
 import { useAuth } from '../auth/AuthContext';
 
@@ -61,10 +61,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Calculated values
-  const items = cart?.items || [];
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce((sum, item) => sum + (item.priceSnapshot * item.quantity), 0);
+  // Memoized derived values to avoid unnecessary re-renders of consumers
+  const items = useMemo(() => cart?.items ?? [], [cart?.items]);
+  const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items]);
+  const subtotal = useMemo(() => items.reduce((sum, item) => sum + item.priceSnapshot * item.quantity, 0), [items]);
 
   // Load cart
   const loadCart = useCallback(async () => {

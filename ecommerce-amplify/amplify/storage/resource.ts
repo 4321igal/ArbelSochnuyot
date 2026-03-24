@@ -59,5 +59,12 @@ export const storage = defineStorage({
       allow.authenticated.to(['read', 'write', 'delete']),
       allow.groups(['Admin']).to(['read', 'write', 'delete']),
     ],
+
+    // Home page hero image (admin upload; public read)
+    [`${IMAGES_PREFIX}hero/*`]: [
+      allow.guest.to(['read']),
+      allow.authenticated.to(['read', 'write']),
+      allow.groups(['Admin']).to(['read', 'write', 'delete']),
+    ],
   }),
 });

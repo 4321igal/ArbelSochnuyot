@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import type { Product } from '../../lib/api/products';
 import { useCart } from '../../lib/cart/CartContext';
@@ -5,15 +6,14 @@ import { StorageImage } from '@/components/StorageImage';
 
 /**
  * Product Card Component
- * 
- * Displays product in grid/list views
+ * Memoized to avoid re-renders when parent list updates (e.g. scroll, unrelated state).
  */
 interface ProductCardProps {
   product: Product;
   showAddToCart?: boolean;
 }
 
-export function ProductCard({ product, showAddToCart = true }: ProductCardProps) {
+function ProductCardInner({ product, showAddToCart = true }: ProductCardProps) {
   const { addItem, isLoading } = useCart();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
@@ -109,3 +109,5 @@ export function ProductCard({ product, showAddToCart = true }: ProductCardProps)
     </Link>
   );
 }
+
+export const ProductCard = memo(ProductCardInner);

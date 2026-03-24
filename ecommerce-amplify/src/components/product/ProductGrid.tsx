@@ -1,10 +1,10 @@
+import { memo } from 'react';
 import { ProductCard } from './ProductCard';
 import type { Product } from '../../lib/api/products';
 
 /**
  * Product Grid Component
- * 
- * Displays products in a responsive grid
+ * Memoized so it does not re-render when parent state changes but products/isLoading/emptyMessage are the same.
  */
 interface ProductGridProps {
   products: Product[];
@@ -12,7 +12,7 @@ interface ProductGridProps {
   emptyMessage?: string;
 }
 
-export function ProductGrid({ products, isLoading, emptyMessage = 'No products found' }: ProductGridProps) {
+function ProductGridInner({ products, isLoading, emptyMessage = 'No products found' }: ProductGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -50,3 +50,5 @@ export function ProductGrid({ products, isLoading, emptyMessage = 'No products f
     </div>
   );
 }
+
+export const ProductGrid = memo(ProductGridInner);
