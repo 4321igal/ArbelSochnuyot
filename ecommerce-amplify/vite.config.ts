@@ -3,9 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 /**
- * RxJS (used by @aws-amplify/api-graphql) must stay in the same chunk as tslib / its internal graph.
- * Splitting rxjs away from Amplify or duplicating tslib across chunks causes:
- * "Class extends value undefined" in Subscriber.js (__extends from tslib).
+ * Avoid manualChunks that split React vs Amplify — that creates a circular chunk graph and
+ * production TDZ errors: "Cannot access 'Sf' before initialization" (minified actions/helpers).
+ * Lazy routes still split admin/pages. dedupe + optimizeDeps keep RxJS/tslib stable in dev.
  */
 export default defineConfig({
   plugins: [react()],
@@ -24,22 +24,6 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return;
-          if (id.includes('lucide-react')) return 'vendor-lucide';
-          if (id.includes('react-router')) return 'vendor-router';
-          if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) {
-            return 'vendor-react';
-          }
-          if (
-            id.includes('rxjs') ||
-            id.includes('tslib') ||
-            id.includes('aws-amplify') ||
-            id.includes('@aws-amplify')
-          ) {
-            return 'vendor-amplify';
-          }
-        },
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
