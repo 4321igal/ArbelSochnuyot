@@ -27,6 +27,9 @@ export const AdminOrders = lazy(() => import('@/pages/admin/AdminOrders').then(m
 export const AdminOrderDetail = lazy(() => import('@/pages/admin/AdminOrderDetail').then(m => ({ default: m.AdminOrderDetail })));
 export const AdminImportCSV = lazy(() => import('@/pages/admin/AdminImportCSV').then(m => ({ default: m.AdminImportCSV })));
 export const AdminHeroPage = lazy(() => import('@/pages/admin/AdminHeroPage').then(m => ({ default: m.AdminHeroPage })));
+export const AdminHomePageManagement = lazy(() =>
+  import('@/pages/admin/AdminHomePageManagement').then(m => ({ default: m.AdminHomePageManagement })),
+);
 
 /** Fallback for lazy routes */
 export function PageFallback() {

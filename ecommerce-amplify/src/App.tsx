@@ -22,6 +22,7 @@ import {
   AdminOrderDetail,
   AdminImportCSV,
   AdminHeroPage,
+  AdminHomePageManagement,
   LazySuspense,
 } from './routes/lazy';
 
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="orders/:id" element={<LazySuspense><AdminOrderDetail /></LazySuspense>} />
           <Route path="import-csv" element={<LazySuspense><AdminImportCSV /></LazySuspense>} />
           <Route path="hero" element={<LazySuspense><AdminHeroPage /></LazySuspense>} />
+          <Route path="homepage" element={<LazySuspense><AdminHomePageManagement /></LazySuspense>} />
           <Route path="manager-product" element={<Navigate to="/admin/products" replace />} />
         </Route>
       </Route>

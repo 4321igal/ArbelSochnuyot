@@ -1,293 +1,228 @@
-# AWS Amplify Gen2 E-Commerce Architecture
+# Architecture
 
-תיעוד הארכיטקטורה והקוד הקיים בפרויקט.
-
----
-
-## 1. ARCHITECTURE DIAGRAM
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    BROWSER (React SPA)                                   │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-           │                    │                    │                    │
-           ▼                    ▼                    ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│ Amplify Hosting │  │   AppSync API   │  │  Cognito Auth   │  │  S3 Storage     │
-│ (S3+CloudFront) │  │   (GraphQL)     │  │  (User Pools)   │  │ (Signed URLs)   │
-│                 │  │                 │  │                 │  │                 │
-│ - React Bundle  │  │ - Queries       │  │ - Sign Up/In    │  │ - Product Imgs  │
-│ - Static Assets │  │ - Mutations     │  │ - Groups:       │  │ - CSV imports   │
-│ - CDN Edge      │  │ - Subscriptions │  │   Admin/Customer│  │ - Category Imgs │
-└─────────────────┘  └────────┬────────┘  └─────────────────┘  └─────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │    DynamoDB     │
-                    │                 │
-                    │ - Category     │
-                    │ - Product      │
-                    │ - ProductSearchMeta │
-                    │ - Cart         │
-                    │ - CartItem     │
-                    │ - Order        │
-                    │ - OrderItem    │
-                    │ - UserProfile  │
-                    └─────────────────┘
-                              │
-           ┌──────────────────┼──────────────────┐
-           ▼                  ▼                  ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│ Lambda:         │  │ Lambda:         │  │ Lambda:         │
-│ paymentsWebhook │  │ aiEnrichProduct │  │ placeOrder      │
-│                 │  │                 │  │                 │
-│ POST /webhook   │  │ AppSync Trigger │  │ AppSync Trigger │
-│ - Verify sig    │  │ - Read Product  │  │ - Cart → Order  │
-│ - Update Order  │  │ - Call OpenAI   │  │ - Atomic txn    │
-└────────┬────────┘  └────────┬────────┘  └────────┬────────┘
-         │                    │                    │
-         ▼                    ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│ Payment Gateway │  │   OpenAI API    │  │    DynamoDB      │
-│ (Stripe/etc)    │  │                 │  │ (TransactWrite) │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-         │                    │                    │
-         └────────────────────┼────────────────────┘
-                              ▼
-                    ┌─────────────────┐
-                    │ CloudWatch Logs │
-                    │                 │
-                    │ - Lambda logs   │
-                    │ - AppSync logs  │
-                    │ - API metrics   │
-                    └─────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                              SECRETS & CONFIGURATION                                     │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│  AWS Secrets Manager / SSM Parameter Store                                              │
-│  ├── /amplify/ecommerce/OPENAI_API_KEY                                                  │
-│  ├── /amplify/ecommerce/PAYMENT_WEBHOOK_SECRET                                          │
-│  └── /amplify/ecommerce/PAYMENT_API_KEY                                                 │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-```
+Documentation of **ecommerce-amplify**: a single-page React storefront and admin UI on **AWS Amplify Gen 2** (Cognito, AppSync, DynamoDB, S3, Lambda). Source of truth is the repository; this file does not depend on prior doc revisions.
 
 ---
 
-## 2. SCREEN MAP (Routes)
+## 1. Overview
 
-מבוסס על `App.tsx` ו־`AdminRoute.tsx`.
+| Concern | Implementation |
+|---------|----------------|
+| UI | React 18, TypeScript, Vite 5, Tailwind CSS, React Router 6 |
+| API surface to browser | AWS AppSync GraphQL (Amplify Data) + Amplify Storage SDK; **no separate Express server** in this app |
+| Auth | Amazon Cognito User Pool; groups `Admin`, `Customer` |
+| Persistence | DynamoDB tables behind Amplify Data models; S3 bucket via Amplify Storage |
+| Heavy workflows | Three Node Lambdas: **place-order**, **ai-enrich-product**, **payments-webhook** |
+| Config | `amplify_outputs.json` loaded in `configureAmplify()` before React render (`src/main.tsx`) |
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                    PUBLIC ROUTES                                         │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│  /                          HomePage                                                   │
-│  ├── Hero, Featured Products (listFeaturedProducts)                                    │
-│  ├── Categories grid (listCategories, top-level only)                                  │
-│  └── Links: /category/all, /category/:slug, /category/featured                          │
-│                                                                                         │
-│  /category/:slug            CategoryPage                                               │
-│  ├── Virtual slugs: "all" (כל המוצרים), "featured" (מוצרים מומלצים)                    │
-│  ├── Otherwise: getCategoryBySlug → listProductsByCategory                             │
-│  ├── Product grid, filters (brand), sort, Load More                                    │
-│  └── Category Not Found / Category Unavailable + Back to Home                          │
-│                                                                                         │
-│  /product/:id               ProductPage                                                │
-│  ├── getProduct(id), תצוגת תמונות, מחיר, Add to cart                                    │
-│  └── Product not found handling                                                        │
-│                                                                                         │
-│  /search                    SearchPage                                                 │
-│  └── חיפוש מוצרים (query param)                                                         │
-│                                                                                         │
-│  /cart                      CartPage                                                  │
-│  ├── CartContext, רשימת פריטים, כמות, סיכום                                             │
-│  └── Proceed to checkout                                                               │
-│                                                                                         │
-│  /auth                      AuthPage                                                  │
-│  └── Sign In / Sign Up (Amplify UI)                                                    │
-│                                                                                         │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                         PROTECTED ROUTES (משתמש מחובר – ProtectedRoute)                  │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│  /checkout                  CheckoutPage                                               │
-│  ├── כתובת משלוח, payment, placeOrderMutation                                          │
-│  └── Order confirmation                                                                 │
-│                                                                                         │
-│  /orders                    OrdersPage                                                 │
-│  └── listOrders (הזמנות של המשתמש)                                                     │
-│                                                                                         │
-│  /account                   AccountPage                                               │
-│  └── הגדרות חשבון                                                                       │
-│                                                                                         │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                         ADMIN ROUTES (AdminRoute)                                        │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│  גישה: לא מחובר → /auth. מחובר אבל לא Admin → רק הנתיבים המפורטים למטה.                │
-│  דפים שפתוחים לכל משתמש מחובר (ללא צורך ב־Admin):                                       │
-│    /admin/manager-product, /admin/import-csv, /admin/categories, /admin/products/*     │
-│  דפים שדורשים Admin: /admin, /admin/orders, /admin/orders/:id                          │
-├─────────────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                         │
-│  /admin                     AdminDashboard (Admin only)                                 │
-│  ├── סטטיסטיקות, הזמנות אחרונות, קישורים למוצרים/קטגוריות/הזמנות                        │
-│  └── Quick actions: Add Product, Categories, Orders                                    │
-│                                                                                         │
-│  /admin/products            AdminProducts                                              │
-│  ├── listProducts (filter: all / active / inactive), pagination, Load More             │
-│  ├── Bulk delete (selected), Toggle active, Edit, Delete                               │
-│  └── Link to /admin/products/new                                                        │
-│                                                                                         │
-│  /admin/products/new        AdminProductForm (create)                                  │
-│  /admin/products/:id/edit   AdminProductForm (edit)                                    │
-│  ├── listAllCategories, getProduct, createProduct, updateProduct                       │
-│  ├── uploadProductImages, AI Enrich (enrichProductMutation)                            │
-│  └── Category required, validation, navigate to /admin/products after save           │
-│                                                                                         │
-│  /admin/manager-product     ManagerProduct (כל משתמש מחובר)                             │
-│  ├── ProductGrid / ProductTable, SearchBar, StatsSection                                │
-│  ├── AddProductModal, EditProductModal, AddCategoryModal, ImportCSVModal                │
-│  ├── useCSVImport, createProduct, updateProduct, deleteProduct, listCategories         │
-│  └── ErrorBoundary                                                                      │
-│                                                                                         │
-│  /admin/categories          AdminCategories (כל משתמש מחובר)                             │
-│  ├── listAllCategories(includeInactive), search/filter, product count                  │
-│  ├── CategoryFormModal: createCategory, updateCategory, deleteCategory                 │
-│  └── היררכיה, image URL + upload (uploadCategoryImage)                                  │
-│                                                                                         │
-│  /admin/import-csv         AdminImportCSV (כל משתמש מחובר)                              │
-│  ├── uploadCSVImport (S3), parse CSV, column mapping (title/price/category/sku)        │
-│  ├── listCategories, default category, addAsActive                                     │
-│  └── Add row / Add all as products (createProduct)                                     │
-│                                                                                         │
-│  /admin/orders              AdminOrders (Admin only)                                    │
-│  ├── listOrders (admin), filter by status, update status                              │
-│  └── Link to /admin/orders/:id                                                          │
-│                                                                                         │
-│  /admin/orders/:id          AdminOrderDetail (Admin only)                               │
-│  ├── getOrder, OrderItem list, customer, status update                                 │
-│  └── Back to orders                                                                     │
-│                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-```
+**Reasonable assumption:** Amplify Hosting serves static `dist/` assets; optional CloudFront in front is common but not defined in repo files.
 
 ---
 
-## 3. FRONTEND STRUCTURE (src/)
+## 2. System Architecture
 
-```
-src/
-├── App.tsx                    # Routes, MainLayout / AdminLayout, ProtectedRoute, AdminRoute
-├── main.tsx                   # React root, configureAmplify(), AuthProvider, CartProvider
-│
-├── components/
-│   ├── layout/
-│   │   ├── MainLayout.tsx     # Header (logo, search, cart, user), nav, footer, Outlet
-│   │   └── AdminLayout.tsx    # Sidebar (Dashboard, Products, Manager Product, Categories, Orders, Import CSV), Outlet
-│   ├── auth/
-│   │   ├── ProtectedRoute.tsx # מפנה ל-/auth אם לא מחובר
-│   │   └── AdminRoute.tsx     # מפנה ל-/auth אם לא מחובר; ל-/ אם מחובר ולא Admin (חוץ מנתיבים מותרים)
-│   ├── product/
-│   │   ├── ProductGrid.tsx    # תצוגת רשת מוצרים
-│   │   └── ProductCard.tsx    # כרטיס מוצר (תמונה, מחיר, לינק)
-│   ├── admin/
-│   │   └── CategoryFormModal.tsx  # יצירה/עריכת קטגוריה, היררכיה, תמונה
-│   └── managerProduct/
-│       ├── ManagerProduct.tsx    # דף ניהול מוצרים (גריד/טבלה, מודלים)
-│       ├── ProductHeader.tsx, ProductGrid.tsx, ProductTable.tsx, SearchBar.tsx, StatsSection.tsx
-│       ├── AddProductModal.tsx, EditProductModal.tsx, AddCategoryModal.tsx, ImportCSVModal.tsx
-│       ├── ErrorBoundary.tsx, useCSVImport.ts
-│       ├── types.ts, constants.ts
-│       └── ...
-│
-├── pages/
-│   ├── HomePage.tsx
-│   ├── CategoryPage.tsx
-│   ├── ProductPage.tsx
-│   ├── SearchPage.tsx
-│   ├── CartPage.tsx
-│   ├── AuthPage.tsx
-│   ├── CheckoutPage.tsx
-│   ├── OrdersPage.tsx
-│   ├── AccountPage.tsx
-│   └── admin/
-│       ├── AdminDashboard.tsx
-│       ├── AdminProducts.tsx
-│       ├── AdminProductForm.tsx
-│       ├── AdminCategories.tsx
-│       ├── AdminOrders.tsx
-│       ├── AdminOrderDetail.tsx
-│       └── AdminImportCSV.tsx
-│
-└── lib/
-    ├── amplify/
-    │   ├── client.ts          # generateClient() – Amplify Data
-    │   └── configure.ts       # Amplify.configure(amplify_outputs.json)
-    ├── api/
-    │   ├── products.ts        # Product/Category CRUD, listProducts, listCategories, getCategoryBySlug, createProduct, ...
-    │   ├── orders.ts          # listOrders, getOrder, updateOrderStatus, placeOrderMutation
-    │   ├── storage.ts         # getImageUrl, uploadProductImages, uploadCategoryImage, uploadCSVImport
-    │   └── schema.ts          # getAdminSchema(), ADMIN_SCHEMA_STATIC (ל־CSV import mapping)
-    ├── auth/
-    │   └── AuthContext.tsx    # useAuth: isAuthenticated, isAdmin, userAttributes, signOut
-    └── cart/
-        └── CartContext.tsx    # Cart state, add/remove/update quantity, load from API
-```
+High-level topology:
+
+- **Browser** runs the SPA (`npm run build` → `dist/`).
+- **Amplify.configure(outputs)** wires Auth, GraphQL endpoint, Storage bucket from generated outputs.
+- **AppSync** resolves model CRUD and three **custom mutations** that invoke Lambdas.
+- **DynamoDB** stores entity state; Lambdas also use **@aws-sdk/lib-dynamodb** with env-injected table names for transactional order logic and webhook updates.
+- **S3** holds images under `images/*` (and Amplify `public/` conventions for guest-level access).
+- **Secrets Manager / SSM** (scoped by IAM in `amplify/backend.ts`) supply OpenAI and payment webhook secrets to two Lambdas.
+
+See **`ARCHITECTURE_DIAGRAMS.md`** for Mermaid diagrams (system, data flow, sequences, AI, deployment).
 
 ---
 
-## 4. DATA LAYER & BACKEND
+## 3. Components Breakdown
 
-### Amplify Data (AppSync + DynamoDB)
+### 3.1 Frontend (`src/`)
 
-- **סכמה:** `amplify/data/resource.ts`  
-  Category, Product, ProductSearchMeta, Cart, CartItem, Order, OrderItem, UserProfile.  
-  מוטציות מותאמות: `placeOrderMutation`, `enrichProductMutation`, `processPaymentWebhook`.
-- **לקוח:** `src/lib/amplify/client.ts` – `generateClient()`; כל הקריאות עוברות דרך ה־client (לא REST נפרד).
+| Area | Location | Role |
+|------|----------|------|
+| Bootstrap | `main.tsx` | `configureAmplify()`, `AuthProvider`, `CartProvider`, `BrowserRouter` |
+| Routes | `App.tsx`, `routes/lazy.tsx` | Lazy-loaded pages + `LazySuspense`; public `MainLayout` vs `AdminLayout` |
+| Auth UI | `pages/AuthPage.tsx` | `@aws-amplify/ui-react` `Authenticator`; CSS import local to auth chunk |
+| Auth state | `lib/auth/AuthContext.tsx` | `getCurrentUser`, `fetchUserAttributes`, `fetchAuthSession`, `cognito:groups` → `isAdmin` |
+| Data client | `lib/amplify/client.ts` | `generateClient<any>()` |
+| Domain APIs | `lib/api/products.ts`, `orders.ts`, `siteHero.ts`, `storage.ts`, `categoriesDelete.ts`, `categoriesImport.ts`, `schema.ts` | Wrappers over `client.models.*`, `client.mutations.*`, Storage |
+| Cart | `lib/cart/CartContext.tsx` | Guests: **localStorage**; signed-in: `Cart` / `CartItem` via AppSync |
+| Guards | `components/auth/ProtectedRoute.tsx`, `AdminRoute.tsx` | Auth required for checkout/orders/account; admin shell with **partial** non-admin access (see §9) |
+| Media | `StorageImage.tsx`, `hooks/useStorageImageUrl.ts`, `lib/api/storage.ts` | DB stores **S3 keys**; **signed GET URLs** at runtime (in-memory cache) |
+| Hero CMS | `components/hero/PublicHeroSection.tsx`, `pages/admin/AdminHeroPage.tsx`, `lib/api/siteHero.ts` | Singleton `SiteHero` id `hero-main` |
 
-### Lambda
+### 3.2 Backend definition (`amplify/`)
 
-- **placeOrder:** `amplify/functions/place-order/` – המרת עגלה להזמנה, TransactWrite (Order, OrderItem, Cart, CartItem).
-- **aiEnrichProduct:** `amplify/functions/ai-enrich-product/` – קריאת מוצר, OpenAI, שמירת ProductSearchMeta.
-- **paymentsWebhook:** `amplify/functions/payments-webhook/` – קבלת webhook תשלום, עדכון Order.
+| Resource | File(s) |
+|----------|---------|
+| Auth | `auth/resource.ts` — email login, MFA optional, groups, password policy |
+| Data schema + custom ops | `data/resource.ts` — models + `placeOrderMutation`, `enrichProductMutation`, `processPaymentWebhook` |
+| Storage | `storage/resource.ts` — path-based ACL for `images/**`, `public/*` |
+| Lambdas | `functions/place-order`, `ai-enrich-product`, `payments-webhook` — `resource.ts` + `handler.ts` |
+| Shared runtime | `functions/shared/logger.ts`, `secrets.ts`, `dynamodb.ts` |
+| Composition | `backend.ts` — `defineBackend`, IAM for secrets, S3 CORS, custom output `apiEndpoint` |
 
-### S3 (Storage)
-
-- תמונות מוצרים, תמונות קטגוריות, קבצי CSV ליבוא (`uploadProductImages`, `uploadCategoryImage`, `uploadCSVImport`).
-
----
-
-## 5. SCRIPTS & DOCS
-
-| Command | תיאור |
-|--------|--------|
-| `npm run dev` | Vite dev server |
-| `npm run build` | tsc + vite build |
-| `npm run sandbox` | npx ampx sandbox (backend מקומי) |
-| `npm run db:reset-products` | איפוס נתוני מוצרים (LOCAL only, עם אישור) |
-| `npm run db:reset-products:dry-run` | סימולציה בלבד (ללא מחיקה) |
-
-- **תיעוד:** `docs/CODE_REVIEW_ADD_PRODUCT_FLOW.md`, `docs/RESET_PRODUCTS.md` (איפוס מוצרים, ERD, flow).
+**Dead / unused in backend composition:** `amplify/functions/get-admin-schema/` defines a function but is **not** registered in `defineBackend`. CSV import uses **static** schema in `src/lib/api/schema.ts` (`getAdminSchema()` returns in-repo JSON).
 
 ---
 
-## 6. TECH STACK JUSTIFICATION
+## 4. Data Flow
 
-### Frontend: Vite + React (over Next.js)
-- **Faster DX**: Vite's HMR is near-instant
-- **Simpler Amplify Integration**: No SSR; Amplify Gen2 works best with SPAs
-- **Smaller Bundle**: No Next.js overhead
-- **Easier Deployment**: Static hosting on Amplify
+### Catalog & marketing (read)
 
-### State Management: React Context
-- **AuthContext**: isAuthenticated, isAdmin, userAttributes, signOut
-- **CartContext**: cart items, add/remove/update, sync with backend when needed
-- Sufficient for current scope; can add Zustand/Redux later
+1. Client calls `client.models.*.list` / `get` (e.g. `Product`, `Category`, `SiteHero`) subject to schema `authorization` rules.
+2. Images: fields hold **object keys**; UI resolves URLs via `getUrl` (Amplify Storage), cached in `storage.ts` / hooks.
 
-### Why Amplify Gen2
-- **Type-Safe**: TypeScript, generated types from schema
-- **Unified Backend**: Auth, Data, Storage, Functions in one project
-- **Local Development**: Sandbox for rapid iteration
-- **Cost-Effective**: Pay-per-use
+### Cart
+
+- **Unauthenticated:** cart JSON in browser **`localStorage`** (see `CartContext` — key constant in file).
+- **Authenticated:** query `Cart` by `userId` + `ACTIVE`; load `CartItem` rows. Owner auth uses `identityClaim('sub')`.
+
+### Checkout → order (write, transactional)
+
+1. `CheckoutPage` → `placeOrder()` in `lib/api/orders.ts`.
+2. Client invokes **`placeOrderMutation`** with cart id, addresses, shipping/payment method, **`idempotencyKey`** (UUID from `uuid` package import in `orders.ts`).
+3. **`place-order` Lambda** validates caller, loads cart/items/products, computes totals (shipping table + VAT constant in handler), writes **Order** + **OrderItems** via **TransactWrite**, clears cart (per handler + `shared/dynamodb.ts`).
+4. Returns **Order** to client.
+
+### AI metadata
+
+1. Admin triggers **`enrichProductMutation`** (Cognito **Admin** group only).
+2. **`ai-enrich-product` Lambda** reads product from DynamoDB, fetches **`amplify/ecommerce/OPENAI_API_KEY`** from Secrets Manager (`shared/secrets.ts` with TTL cache), calls OpenAI, upserts **ProductSearchMeta**.
+
+### Payment webhook
+
+1. Provider invokes **`processPaymentWebhook`** (`allow.guest()` so unauthenticated GraphQL caller can reach handler — **signature** checked in Lambda).
+2. **`payments-webhook` Lambda** uses **`amplify/ecommerce/PAYMENT_WEBHOOK_SECRET`**, parses Stripe-shaped JSON in code, updates order in DynamoDB.
+
+**Background jobs:** No SQS/EventBridge in `backend.ts`; async work is **synchronous Lambda** execution on mutation invocation.
+
+---
+
+## 5. Frontend Architecture
+
+- **Bundler:** Vite; alias `@` → `src`. **No `manualChunks`** splitting React from Amplify (avoids circular chunk / TDZ production errors documented in `vite.config.ts`). Code splitting is primarily **route-level** (`React.lazy` in `routes/lazy.tsx`).
+- **Styling:** Tailwind (`tailwind.config.js`, `src/styles/index.css`).
+- **Global state:** React Context (auth, cart); no Redux in `package.json`.
+- **Search page:** Fetches a bounded product list and filters **client-side** (explicitly noted as basic in source comments).
+- **Admin products:** `UnifiedAdminProducts.tsx` — debounced search, `nextToken` pagination, bulk operations; `listProducts` in `products.ts` applies some filters post-fetch.
+
+---
+
+## 6. Backend Architecture
+
+- **Amplify Gen 2** `defineBackend({ auth, data, storage, paymentsWebhook, aiEnrichProduct, placeOrder })`.
+- **Custom mutations** bridge AppSync → Lambda; resolver identity passed into handlers (`event.identity?.sub` in place-order).
+- **IAM:** Extra policy on **aiEnrichProduct** and **paymentsWebhook** Lambdas for `secretsmanager:GetSecretValue` and `ssm:GetParameter(s)` on `amplify/ecommerce/*` ARNs.
+- **S3 CORS:** Bucket CORS allows `localhost:5173` and `https://*.amplifyapp.com`; comment prompts adding production origin.
+
+---
+
+## 7. Database & Storage Design
+
+### 7.1 Amplify Data models (DynamoDB)
+
+Defined in `amplify/data/resource.ts`:
+
+| Model | Notes |
+|-------|--------|
+| **Category** | Tree `parentId`; GSI `slug`, `parentId`+`sortOrder`; soft delete fields |
+| **Product** | GSI `categoryId`+`createdAt`, `brand`+`createdAt`; soft delete |
+| **ProductSearchMeta** | AI fields; GSI `productId` |
+| **Cart** | GSI `userId`+`createdAt`; status enum |
+| **CartItem** | GSI `cartId`, `productId`; price/title/image snapshots |
+| **Order** | GSI `userId`+`createdAt`, `status`+`createdAt`, `orderNumber`, `idempotencyKey`; JSON addresses |
+| **OrderItem** | Snapshots; GSI `orderId`, `productId` |
+| **UserProfile** | JSON `addresses` / `preferences`; GSI `userId`, `email` |
+| **SiteHero** | Marketing copy + `imageKey`; public read, Admin write |
+
+**GraphQL authorization modes:** `defaultAuthorizationMode: 'userPool'`; `apiKeyAuthorizationMode` **expiresInDays: 365** (available for clients that use API key — not all frontend paths do).
+
+### 7.2 S3 (Amplify Storage)
+
+`amplify/storage/resource.ts`: prefixes under **`images/`** plus **`public/*`**. Rules grant guest read on catalog/hero paths, authenticated write, Admin delete where specified; avatars scoped by `entity_id`; `imports/*` for CSV; `temp/{entity_id}/*` for per-user temp.
+
+Client uploads use **`uploadData`** with **`accessLevel: 'guest'`** for shared catalog paths (matches Amplify v6 public prefix behavior).
+
+---
+
+## 8. External Integrations
+
+| Service | Consumption |
+|---------|-------------|
+| **OpenAI** | `ai-enrich-product/handler.ts`; API key secret name **`amplify/ecommerce/OPENAI_API_KEY`** |
+| **Payment provider** | Webhook payload + HMAC-style validation in `payments-webhook/handler.ts`; secret **`amplify/ecommerce/PAYMENT_WEBHOOK_SECRET`** |
+| **Cognito email** | Verification template in `auth/resource.ts` |
+
+---
+
+## 9. Authentication & Security
+
+- **Sign-in:** Email + password; optional TOTP MFA (`OPTIONAL` mode).
+- **Groups:** `Admin`, `Customer` — `AuthContext` sets `isAdmin` from JWT `cognito:groups`.
+- **AdminRoute:** After authentication, **`/admin/import-csv`**, **`/admin/categories`**, and **`/admin/products`** (prefix) are reachable by **any** signed-in user; remaining `/admin/*` require **`isAdmin`**. Backend schema still enforces Cognito rules on mutations — **UI route is looser than “Admin only”** for those paths.
+- **placeOrderMutation:** `allow.authenticated()` only (not guest).
+- **processPaymentWebhook:** `allow.guest()` — security depends on **signature verification** in Lambda.
+- **Logging:** `shared/logger.ts` scrubs keys matching PII name patterns before JSON log emission.
+
+---
+
+## 10. Deployment & Environments
+
+| Path | Mechanism |
+|------|-----------|
+| CI/CD | Repo **`amplify.yml`**: `appRoot: ecommerce-amplify` |
+| Frontend | `npm install`, `npm run build`, artifact **`dist/**`** |
+| Backend | `npm install`, **`npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID`** |
+| Local | `npm run dev` (Vite **5173**); backend via `npx ampx sandbox` (scripts in `package.json`) |
+
+**Environment pairing:** `amplify_outputs.json` at project root (or path used by `configure.ts`) must match the deployed backend for that environment.
+
+---
+
+## 11. Observability (Logging, Monitoring, Errors)
+
+- **Lambdas:** Structured JSON logs via `Logger` class → stdout → **CloudWatch Logs**; level from env **`LOG_LEVEL`** (default INFO).
+- **Frontend:** Errors mostly `console.error` and user-visible strings; no APM or error-reporting SDK in dependencies.
+- **Secrets helper:** In-memory cache (~5 min) per Lambda container to reduce Secrets Manager calls.
+
+**Reasonable assumption:** Alarms/dashboards would be configured in AWS Console; not codified here.
+
+---
+
+## 12. Scalability & Performance
+
+- **Pagination:** `nextToken` used in multiple list UIs (e.g. category products, admin orders, unified products).
+- **Client-side filtering:** Portions of `listProducts` and `SearchPage` filter in the browser — **O(n)** over fetched pages, not suitable for very large catalogs without API changes.
+- **`getProductCountByCategoryMap`:** Paginates through products — costly at scale.
+- **Images:** Short-lived URL cache; lazy loading on several image components.
+- **Vite:** `dedupe: ['rxjs','tslib']`, `optimizeDeps.include` for Amplify stack; stable production bundle without manual React/Amplify split.
+
+---
+
+## 13. Risks & Limitations
+
+1. **Dual data access:** AppSync for normal CRUD vs Lambda + raw DynamoDB for orders/webhook/AI — schema/table drift risk if models change without updating `shared/dynamodb.ts` and env wiring.
+2. **Webhook mutation is public** at GraphQL auth layer — compromised secret or weak validation is high impact.
+3. **Guest cart** — not durable cross-device; merge on login not evident in reviewed cart code.
+4. **Staff vs Admin routes** — authenticated non-admins can open some admin URLs; relies on API authorization for writes.
+5. **Static CSV schema** — `get-admin-schema` Lambda not deployed; drift requires manual `schema.ts` updates.
+6. **CORS** — custom production domain must be added to S3 CORS in `backend.ts` if not under `*.amplifyapp.com`.
+7. **`placeOrder` Lambda** — synchronous; long-running checkout could hit Lambda timeout under extreme load (limit not stated in repo).
+
+---
+
+## 14. Gaps & Suggested Improvements
+
+1. Register **`get-admin-schema`** in `backend.ts` and call it from `getAdminSchema()`, or delete unused Lambda folder.
+2. Reconcile **AdminRoute** with product intent: require Admin for all `/admin/*` or document staff role explicitly.
+3. Server-side **search** and **filtered list** APIs for large catalogs.
+4. **Category product counts** without full-table scans (denormalized count, aggregate, or cache).
+5. **Frontend error boundary** + optional **RUM** or third-party error tracking.
+6. **Integration tests** for `placeOrderMutation` idempotency and webhook signature failure paths.
+7. **Branch-specific** `amplify_outputs` in CI (secrets / artifacts) if not already handled outside repo.
+8. Add **`uuid`** to `package.json` `dependencies` if it is only hoisted transitively (clarity and reproducibility).
+
+---
+
+*Derived from `ecommerce-amplify/` source and `amplify.yml` only.*
