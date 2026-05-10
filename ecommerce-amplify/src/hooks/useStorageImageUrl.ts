@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react';
 import {
   getSignedUrl,
-  extractKeyFromS3Url,
   isStorageKey,
   PLACEHOLDER_IMAGE,
 } from '@/lib/api/storage';
+
+function extractKeyFromS3Url(url: string): string | null {
+  if (!url || !url.startsWith('http')) return null;
+  try {
+    const u = new URL(url);
+    const path = u.pathname;
+    const match = path.match(/\/(images\/[^?]+)/);
+    if (match) return match[1];
+    if (path.includes('images/')) return path.slice(path.indexOf('images/'));
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export interface UseStorageImageUrlResult {
   url: string;

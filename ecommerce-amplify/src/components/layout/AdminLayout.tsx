@@ -1,105 +1,109 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Car,
+  Tag,
+  Layers,
+  Phone,
+  Upload,
+  Image as ImageIcon,
+  ExternalLink,
+  LogOut,
+} from 'lucide-react';
 import { useAuth } from '../../lib/auth/AuthContext';
 
-/**
- * Admin Layout Component
- * 
- * Sidebar navigation for admin pages
- */
 export function AdminLayout() {
   const { userAttributes, signOut } = useAuth();
   const location = useLocation();
 
   const navItems = [
-    { path: '/admin', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { path: '/admin/homepage', label: 'דף הבית (CMS)', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z' },
-    { path: '/admin/hero', label: 'Home hero', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
-    { path: '/admin/products', label: 'Products', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
-    { path: '/admin/categories', label: 'Categories', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
-    { path: '/admin/orders', label: 'Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-    { path: '/admin/import-csv', label: 'Import CSV', icon: 'M7 16a4 4 0 01-.88-7.903A15 15 0 0118 9.75v-1.5a2.25 2.25 0 00-2.25-2.25h-.75a2.25 2.25 0 00-2.25 2.25v1.5A15 15 0 016.18 8.1 4 4 0 017 16zM4 10a.75.75 0 01.75-.75h7.5a.75.75 0 01.75.75v4a.75.75 0 01-.75.75h-7.5A.75.75 0 014 14v-4z' },
+    { path: '/admin', label: 'דשבורד', icon: LayoutDashboard },
+    { path: '/admin/vehicles', label: 'רכבים', icon: Car },
+    { path: '/admin/makes', label: 'יצרנים', icon: Tag },
+    { path: '/admin/body-types', label: 'סוגי רכב', icon: Layers },
+    { path: '/admin/inquiries', label: 'פניות', icon: Phone },
+    { path: '/admin/import-csv', label: 'ייבוא CSV', icon: Upload },
+    { path: '/admin/hero', label: 'תמונת Hero', icon: ImageIcon },
   ];
 
   const isActive = (path: string) => {
-    if (path === '/admin') {
-      return location.pathname === '/admin';
-    }
+    if (path === '/admin') return location.pathname === '/admin';
     return location.pathname.startsWith(path);
   };
 
   return (
     <div className="min-h-screen flex bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 text-white">
-        <div className="p-4">
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-indigo-400">Store Admin</span>
+      <aside className="w-64 bg-brand-900 text-white flex flex-col">
+        <div className="p-4 border-b border-white/10">
+          <Link to="/" className="flex items-center gap-2">
+            <Car className="w-6 h-6 text-accent-500" />
+            <div className="leading-none">
+              <div className="text-base font-bold">ערבל סוכנויות</div>
+              <div className="text-[10px] text-accent-300 mt-1">לוח בקרה</div>
+            </div>
           </Link>
         </div>
 
-        <nav className="mt-8">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 transition-colors ${
-                isActive(item.path)
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-              </svg>
-              <span>{item.label}</span>
-            </Link>
-          ))}
+        <nav className="flex-1 mt-4">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                  isActive(item.path)
+                    ? 'bg-accent-500 text-brand-900 font-semibold'
+                    : 'text-white/85 hover:bg-white/5'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 w-64 p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-white/10">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-9 h-9 bg-accent-500 text-brand-900 font-bold rounded-full flex items-center justify-center shrink-0">
                 {userAttributes?.given_name?.[0] || 'A'}
               </div>
-              <span className="text-sm text-gray-300">
-                {userAttributes?.given_name || 'Admin'}
-              </span>
+              <div className="text-sm leading-tight min-w-0">
+                <div className="font-medium truncate">
+                  {userAttributes?.given_name || 'מנהל'}
+                </div>
+                <div className="text-xs text-white/60 truncate">{userAttributes?.email}</div>
+              </div>
             </div>
             <button
               onClick={() => signOut()}
-              className="text-gray-400 hover:text-white"
-              title="Sign Out"
+              className="text-white/60 hover:text-white p-1"
+              title="התנתק"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Top bar */}
-        <header className="bg-white shadow-sm h-16 flex items-center px-6">
+        <header className="bg-white shadow-sm h-16 flex items-center px-6 border-b">
           <div className="flex-1">
-            <h1 className="text-xl font-semibold text-gray-800">
-              {navItems.find(item => isActive(item.path))?.label || 'Admin'}
+            <h1 className="text-xl font-semibold text-brand-800">
+              {navItems.find((item) => isActive(item.path))?.label || 'ניהול'}
             </h1>
           </div>
           <Link
             to="/"
-            className="text-gray-600 hover:text-indigo-600 flex items-center space-x-2"
+            className="text-gray-600 hover:text-brand-800 flex items-center gap-2 text-sm"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            <span>View Store</span>
+            <ExternalLink className="w-4 h-4" />
+            <span>צפה באתר</span>
           </Link>
         </header>
 
-        {/* Page Content */}
         <main className="flex-1 p-6 overflow-auto">
           <Outlet />
         </main>

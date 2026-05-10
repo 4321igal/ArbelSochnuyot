@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-1_8WsNni2tV",
+    "user_pool_id": "us-east-1_MXeA3VqhE",
     "aws_region": "us-east-1",
-    "user_pool_client_id": "46bhf3d0btnritd6ab915m7v7l",
-    "identity_pool_id": "us-east-1:999a59af-6df7-40e5-9871-6f2967072a57",
+    "user_pool_client_id": "18fg4obhnufaq1rmtu3bo56vqm",
+    "identity_pool_id": "us-east-1:fe1c16ec-c2c9-4553-945a-7e65340ad493",
     "mfa_methods": [
       "TOTP"
     ],
@@ -39,9 +39,9 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://n4w7wdnkffgvdmtuonddtmwole.appsync-api.us-east-1.amazonaws.com/graphql",
+    "url": "https://ptauybnot5at3oz4ub5qg7wsda.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
-    "api_key": "da2-7i3pzw27vbfend4k5enbhjuzym",
+    "api_key": "da2-aex2xdebpbdtdbimoe6r5t6sci",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
     "authorization_types": [
       "API_KEY",
@@ -50,8 +50,8 @@
     "model_introspection": {
       "version": 1,
       "models": {
-        "Category": {
-          "name": "Category",
+        "Make": {
+          "name": "Make",
           "fields": {
             "id": {
               "name": "id",
@@ -74,22 +74,8 @@
               "isRequired": true,
               "attributes": []
             },
-            "description": {
-              "name": "description",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "parentId": {
-              "name": "parentId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": false,
-              "attributes": []
-            },
-            "imageUrl": {
-              "name": "imageUrl",
+            "logoUrl": {
+              "name": "logoUrl",
               "isArray": false,
               "type": "String",
               "isRequired": false,
@@ -123,47 +109,11 @@
               "isRequired": false,
               "attributes": []
             },
-            "isDeleted": {
-              "name": "isDeleted",
-              "isArray": false,
-              "type": "Boolean",
-              "isRequired": false,
-              "attributes": []
-            },
-            "deletedAt": {
-              "name": "deletedAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": []
-            },
-            "deletedBy": {
-              "name": "deletedBy",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "parent": {
-              "name": "parent",
-              "isArray": false,
-              "type": {
-                "model": "Category"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "parentId"
-                ]
-              }
-            },
-            "children": {
-              "name": "children",
+            "vehicles": {
+              "name": "vehicles",
               "isArray": true,
               "type": {
-                "model": "Category"
+                "model": "Vehicle"
               },
               "isRequired": false,
               "attributes": [],
@@ -171,29 +121,13 @@
               "association": {
                 "connectionType": "HAS_MANY",
                 "associatedWith": [
-                  "parentId"
-                ]
-              }
-            },
-            "products": {
-              "name": "products",
-              "isArray": true,
-              "type": {
-                "model": "Product"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "categoryId"
+                  "makeId"
                 ]
               }
             }
           },
           "syncable": true,
-          "pluralName": "Categories",
+          "pluralName": "Makes",
           "attributes": [
             {
               "type": "model",
@@ -210,21 +144,10 @@
             {
               "type": "key",
               "properties": {
-                "name": "categoriesBySlug",
-                "queryField": "listCategoryBySlug",
+                "name": "makesBySlug",
+                "queryField": "listMakeBySlug",
                 "fields": [
                   "slug"
-                ]
-              }
-            },
-            {
-              "type": "key",
-              "properties": {
-                "name": "categoriesByParentIdAndSortOrder",
-                "queryField": "listCategoryByParentIdAndSortOrder",
-                "fields": [
-                  "parentId",
-                  "sortOrder"
                 ]
               }
             },
@@ -242,8 +165,7 @@
                   {
                     "allow": "private",
                     "operations": [
-                      "read",
-                      "create"
+                      "read"
                     ]
                   },
                   {
@@ -270,8 +192,8 @@
             "sortKeyFieldNames": []
           }
         },
-        "Product": {
-          "name": "Product",
+        "BodyType": {
+          "name": "BodyType",
           "fields": {
             "id": {
               "name": "id",
@@ -280,93 +202,29 @@
               "isRequired": true,
               "attributes": []
             },
-            "title": {
-              "name": "title",
+            "name": {
+              "name": "name",
               "isArray": false,
               "type": "String",
               "isRequired": true,
               "attributes": []
             },
-            "description": {
-              "name": "description",
+            "slug": {
+              "name": "slug",
               "isArray": false,
               "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "price": {
-              "name": "price",
-              "isArray": false,
-              "type": "Float",
               "isRequired": true,
               "attributes": []
             },
-            "compareAtPrice": {
-              "name": "compareAtPrice",
-              "isArray": false,
-              "type": "Float",
-              "isRequired": false,
-              "attributes": []
-            },
-            "currency": {
-              "name": "currency",
+            "iconUrl": {
+              "name": "iconUrl",
               "isArray": false,
               "type": "String",
               "isRequired": false,
               "attributes": []
             },
-            "images": {
-              "name": "images",
-              "isArray": true,
-              "type": "String",
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true
-            },
-            "categoryId": {
-              "name": "categoryId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "brand": {
-              "name": "brand",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "sku": {
-              "name": "sku",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "barcode": {
-              "name": "barcode",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "attributes": {
-              "name": "attributes",
-              "isArray": false,
-              "type": "AWSJSON",
-              "isRequired": false,
-              "attributes": []
-            },
-            "stockQty": {
-              "name": "stockQty",
-              "isArray": false,
-              "type": "Int",
-              "isRequired": false,
-              "attributes": []
-            },
-            "lowStockThreshold": {
-              "name": "lowStockThreshold",
+            "sortOrder": {
+              "name": "sortOrder",
               "isArray": false,
               "type": "Int",
               "isRequired": false,
@@ -379,6 +237,303 @@
               "isRequired": false,
               "attributes": []
             },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "vehicles": {
+              "name": "vehicles",
+              "isArray": true,
+              "type": {
+                "model": "Vehicle"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": [
+                  "bodyTypeId"
+                ]
+              }
+            }
+          },
+          "syncable": true,
+          "pluralName": "BodyTypes",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "id"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "bodyTypesBySlug",
+                "queryField": "listBodyTypeBySlug",
+                "fields": [
+                  "slug"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "iam",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "create",
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "groups": [
+                      "Admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "Vehicle": {
+          "name": "Vehicle",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "makeId": {
+              "name": "makeId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "modelName": {
+              "name": "modelName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "trim": {
+              "name": "trim",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "year": {
+              "name": "year",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": true,
+              "attributes": []
+            },
+            "bodyTypeId": {
+              "name": "bodyTypeId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
+              "attributes": []
+            },
+            "price": {
+              "name": "price",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": true,
+              "attributes": []
+            },
+            "listPrice": {
+              "name": "listPrice",
+              "isArray": false,
+              "type": "Float",
+              "isRequired": false,
+              "attributes": []
+            },
+            "currency": {
+              "name": "currency",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "mileage": {
+              "name": "mileage",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "transmission": {
+              "name": "transmission",
+              "isArray": false,
+              "type": {
+                "enum": "VehicleTransmission"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "fuelType": {
+              "name": "fuelType",
+              "isArray": false,
+              "type": {
+                "enum": "VehicleFuelType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "enginePower": {
+              "name": "enginePower",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "engineCapacity": {
+              "name": "engineCapacity",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "driveType": {
+              "name": "driveType",
+              "isArray": false,
+              "type": {
+                "enum": "VehicleDriveType"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "color": {
+              "name": "color",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "interiorColor": {
+              "name": "interiorColor",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "doors": {
+              "name": "doors",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "seats": {
+              "name": "seats",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "vin": {
+              "name": "vin",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "plateNumber": {
+              "name": "plateNumber",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "firstRegistrationDate": {
+              "name": "firstRegistrationDate",
+              "isArray": false,
+              "type": "AWSDate",
+              "isRequired": false,
+              "attributes": []
+            },
+            "hand": {
+              "name": "hand",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "previousOwners": {
+              "name": "previousOwners",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "accidentFree": {
+              "name": "accidentFree",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "inspectionExpiryDate": {
+              "name": "inspectionExpiryDate",
+              "isArray": false,
+              "type": "AWSDate",
+              "isRequired": false,
+              "attributes": []
+            },
+            "status": {
+              "name": "status",
+              "isArray": false,
+              "type": {
+                "enum": "VehicleStatus"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
             "isFeatured": {
               "name": "isFeatured",
               "isArray": false,
@@ -386,27 +541,44 @@
               "isRequired": false,
               "attributes": []
             },
-            "weight": {
-              "name": "weight",
+            "condition": {
+              "name": "condition",
               "isArray": false,
-              "type": "Float",
+              "type": {
+                "enum": "VehicleCondition"
+              },
               "isRequired": false,
               "attributes": []
             },
-            "dimensions": {
-              "name": "dimensions",
+            "description": {
+              "name": "description",
               "isArray": false,
-              "type": "AWSJSON",
+              "type": "String",
               "isRequired": false,
               "attributes": []
             },
-            "tags": {
-              "name": "tags",
+            "features": {
+              "name": "features",
               "isArray": true,
               "type": "String",
               "isRequired": false,
               "attributes": [],
               "isArrayNullable": true
+            },
+            "images": {
+              "name": "images",
+              "isArray": true,
+              "type": "String",
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true
+            },
+            "branchLocation": {
+              "name": "branchLocation",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
             },
             "createdAt": {
               "name": "createdAt",
@@ -443,18 +615,33 @@
               "isRequired": false,
               "attributes": []
             },
-            "category": {
-              "name": "category",
+            "make": {
+              "name": "make",
               "isArray": false,
               "type": {
-                "model": "Category"
+                "model": "Make"
               },
               "isRequired": false,
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
                 "targetNames": [
-                  "categoryId"
+                  "makeId"
+                ]
+              }
+            },
+            "bodyType": {
+              "name": "bodyType",
+              "isArray": false,
+              "type": {
+                "model": "BodyType"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": [
+                  "bodyTypeId"
                 ]
               }
             },
@@ -462,23 +649,23 @@
               "name": "searchMeta",
               "isArray": false,
               "type": {
-                "model": "ProductSearchMeta"
+                "model": "VehicleSearchMeta"
               },
               "isRequired": false,
               "attributes": [],
               "association": {
                 "connectionType": "HAS_ONE",
                 "associatedWith": [
-                  "productId"
+                  "vehicleId"
                 ],
                 "targetNames": []
               }
             },
-            "cartItems": {
-              "name": "cartItems",
+            "inquiries": {
+              "name": "inquiries",
               "isArray": true,
               "type": {
-                "model": "CartItem"
+                "model": "Inquiry"
               },
               "isRequired": false,
               "attributes": [],
@@ -486,29 +673,13 @@
               "association": {
                 "connectionType": "HAS_MANY",
                 "associatedWith": [
-                  "productId"
-                ]
-              }
-            },
-            "orderItems": {
-              "name": "orderItems",
-              "isArray": true,
-              "type": {
-                "model": "OrderItem"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "productId"
+                  "vehicleId"
                 ]
               }
             }
           },
           "syncable": true,
-          "pluralName": "Products",
+          "pluralName": "Vehicles",
           "attributes": [
             {
               "type": "model",
@@ -525,10 +696,21 @@
             {
               "type": "key",
               "properties": {
-                "name": "byCategoryCreatedAt",
-                "queryField": "listProductByCategoryIdAndCreatedAt",
+                "name": "byMakeYear",
+                "queryField": "listVehicleByMakeIdAndYear",
                 "fields": [
-                  "categoryId",
+                  "makeId",
+                  "year"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "byBodyTypeCreatedAt",
+                "queryField": "listVehicleByBodyTypeIdAndCreatedAt",
+                "fields": [
+                  "bodyTypeId",
                   "createdAt"
                 ]
               }
@@ -536,10 +718,10 @@
             {
               "type": "key",
               "properties": {
-                "name": "byBrandCreatedAt",
-                "queryField": "listProductByBrandAndCreatedAt",
+                "name": "byStatusCreatedAt",
+                "queryField": "listVehicleByStatusAndCreatedAt",
                 "fields": [
-                  "brand",
+                  "status",
                   "createdAt"
                 ]
               }
@@ -558,9 +740,7 @@
                   {
                     "allow": "private",
                     "operations": [
-                      "read",
-                      "create",
-                      "update"
+                      "read"
                     ]
                   },
                   {
@@ -587,8 +767,8 @@
             "sortKeyFieldNames": []
           }
         },
-        "ProductSearchMeta": {
-          "name": "ProductSearchMeta",
+        "VehicleSearchMeta": {
+          "name": "VehicleSearchMeta",
           "fields": {
             "id": {
               "name": "id",
@@ -597,8 +777,8 @@
               "isRequired": true,
               "attributes": []
             },
-            "productId": {
-              "name": "productId",
+            "vehicleId": {
+              "name": "vehicleId",
               "isArray": false,
               "type": "ID",
               "isRequired": true,
@@ -611,8 +791,8 @@
               "isRequired": false,
               "attributes": []
             },
-            "aiTags": {
-              "name": "aiTags",
+            "aiHighlights": {
+              "name": "aiHighlights",
               "isArray": true,
               "type": "String",
               "isRequired": false,
@@ -668,24 +848,24 @@
               "isRequired": false,
               "attributes": []
             },
-            "product": {
-              "name": "product",
+            "vehicle": {
+              "name": "vehicle",
               "isArray": false,
               "type": {
-                "model": "Product"
+                "model": "Vehicle"
               },
               "isRequired": false,
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
                 "targetNames": [
-                  "productId"
+                  "vehicleId"
                 ]
               }
             }
           },
           "syncable": true,
-          "pluralName": "ProductSearchMetas",
+          "pluralName": "VehicleSearchMetas",
           "attributes": [
             {
               "type": "model",
@@ -702,10 +882,10 @@
             {
               "type": "key",
               "properties": {
-                "name": "productSearchMetasByProductId",
-                "queryField": "listProductSearchMetaByProductId",
+                "name": "vehicleSearchMetasByVehicleId",
+                "queryField": "listVehicleSearchMetaByVehicleId",
                 "fields": [
-                  "productId"
+                  "vehicleId"
                 ]
               }
             },
@@ -750,421 +930,99 @@
             "sortKeyFieldNames": []
           }
         },
-        "Cart": {
-          "name": "Cart",
+        "Inquiry": {
+          "name": "Inquiry",
           "fields": {
             "id": {
               "name": "id",
               "isArray": false,
               "type": "ID",
               "isRequired": true,
+              "attributes": []
+            },
+            "vehicleId": {
+              "name": "vehicleId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": false,
               "attributes": []
             },
             "userId": {
               "name": "userId",
               "isArray": false,
               "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "fullName": {
+              "name": "fullName",
+              "isArray": false,
+              "type": "String",
               "isRequired": true,
+              "attributes": []
+            },
+            "phone": {
+              "name": "phone",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "email": {
+              "name": "email",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "preferredContactMethod": {
+              "name": "preferredContactMethod",
+              "isArray": false,
+              "type": {
+                "enum": "InquiryPreferredContactMethod"
+              },
+              "isRequired": false,
+              "attributes": []
+            },
+            "message": {
+              "name": "message",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            },
+            "interestedInTestDrive": {
+              "name": "interestedInTestDrive",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "interestedInFinancing": {
+              "name": "interestedInFinancing",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "tradeInDescription": {
+              "name": "tradeInDescription",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
               "attributes": []
             },
             "status": {
               "name": "status",
               "isArray": false,
               "type": {
-                "enum": "CartStatus"
+                "enum": "InquiryStatus"
               },
               "isRequired": false,
               "attributes": []
             },
-            "expiresAt": {
-              "name": "expiresAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": []
-            },
-            "createdAt": {
-              "name": "createdAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": []
-            },
-            "updatedAt": {
-              "name": "updatedAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": []
-            },
-            "items": {
-              "name": "items",
-              "isArray": true,
-              "type": {
-                "model": "CartItem"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "cartId"
-                ]
-              }
-            }
-          },
-          "syncable": true,
-          "pluralName": "Carts",
-          "attributes": [
-            {
-              "type": "model",
-              "properties": {}
-            },
-            {
-              "type": "key",
-              "properties": {
-                "fields": [
-                  "id"
-                ]
-              }
-            },
-            {
-              "type": "key",
-              "properties": {
-                "name": "cartsByUserIdAndCreatedAt",
-                "queryField": "listCartByUserIdAndCreatedAt",
-                "fields": [
-                  "userId",
-                  "createdAt"
-                ]
-              }
-            },
-            {
-              "type": "auth",
-              "properties": {
-                "rules": [
-                  {
-                    "provider": "userPools",
-                    "ownerField": "owner",
-                    "allow": "owner",
-                    "identityClaim": "sub",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
-                  },
-                  {
-                    "groupClaim": "cognito:groups",
-                    "provider": "userPools",
-                    "allow": "groups",
-                    "operations": [
-                      "read"
-                    ],
-                    "groups": [
-                      "Admin"
-                    ]
-                  }
-                ]
-              }
-            }
-          ],
-          "primaryKeyInfo": {
-            "isCustomPrimaryKey": false,
-            "primaryKeyFieldName": "id",
-            "sortKeyFieldNames": []
-          }
-        },
-        "CartItem": {
-          "name": "CartItem",
-          "fields": {
-            "id": {
-              "name": "id",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "cartId": {
-              "name": "cartId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "productId": {
-              "name": "productId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "quantity": {
-              "name": "quantity",
-              "isArray": false,
-              "type": "Int",
-              "isRequired": true,
-              "attributes": []
-            },
-            "priceSnapshot": {
-              "name": "priceSnapshot",
-              "isArray": false,
-              "type": "Float",
-              "isRequired": true,
-              "attributes": []
-            },
-            "titleSnapshot": {
-              "name": "titleSnapshot",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "imageSnapshot": {
-              "name": "imageSnapshot",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "createdAt": {
-              "name": "createdAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": []
-            },
-            "updatedAt": {
-              "name": "updatedAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": []
-            },
-            "cart": {
-              "name": "cart",
-              "isArray": false,
-              "type": {
-                "model": "Cart"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "cartId"
-                ]
-              }
-            },
-            "product": {
-              "name": "product",
-              "isArray": false,
-              "type": {
-                "model": "Product"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "productId"
-                ]
-              }
-            }
-          },
-          "syncable": true,
-          "pluralName": "CartItems",
-          "attributes": [
-            {
-              "type": "model",
-              "properties": {}
-            },
-            {
-              "type": "key",
-              "properties": {
-                "fields": [
-                  "id"
-                ]
-              }
-            },
-            {
-              "type": "key",
-              "properties": {
-                "name": "cartItemsByCartId",
-                "queryField": "listCartItemByCartId",
-                "fields": [
-                  "cartId"
-                ]
-              }
-            },
-            {
-              "type": "key",
-              "properties": {
-                "name": "cartItemsByProductId",
-                "queryField": "listCartItemByProductId",
-                "fields": [
-                  "productId"
-                ]
-              }
-            },
-            {
-              "type": "auth",
-              "properties": {
-                "rules": [
-                  {
-                    "provider": "userPools",
-                    "ownerField": "owner",
-                    "allow": "owner",
-                    "identityClaim": "sub",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
-                    ]
-                  },
-                  {
-                    "groupClaim": "cognito:groups",
-                    "provider": "userPools",
-                    "allow": "groups",
-                    "operations": [
-                      "read"
-                    ],
-                    "groups": [
-                      "Admin"
-                    ]
-                  }
-                ]
-              }
-            }
-          ],
-          "primaryKeyInfo": {
-            "isCustomPrimaryKey": false,
-            "primaryKeyFieldName": "id",
-            "sortKeyFieldNames": []
-          }
-        },
-        "Order": {
-          "name": "Order",
-          "fields": {
-            "id": {
-              "name": "id",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "userId": {
-              "name": "userId",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "orderNumber": {
-              "name": "orderNumber",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "status": {
-              "name": "status",
-              "isArray": false,
-              "type": {
-                "enum": "OrderStatus"
-              },
-              "isRequired": false,
-              "attributes": []
-            },
-            "subtotal": {
-              "name": "subtotal",
-              "isArray": false,
-              "type": "Float",
-              "isRequired": true,
-              "attributes": []
-            },
-            "shippingCost": {
-              "name": "shippingCost",
-              "isArray": false,
-              "type": "Float",
-              "isRequired": false,
-              "attributes": []
-            },
-            "taxAmount": {
-              "name": "taxAmount",
-              "isArray": false,
-              "type": "Float",
-              "isRequired": false,
-              "attributes": []
-            },
-            "discountAmount": {
-              "name": "discountAmount",
-              "isArray": false,
-              "type": "Float",
-              "isRequired": false,
-              "attributes": []
-            },
-            "total": {
-              "name": "total",
-              "isArray": false,
-              "type": "Float",
-              "isRequired": true,
-              "attributes": []
-            },
-            "currency": {
-              "name": "currency",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "paymentMethod": {
-              "name": "paymentMethod",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "paymentRef": {
-              "name": "paymentRef",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "paidAt": {
-              "name": "paidAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": []
-            },
-            "shippingAddress": {
-              "name": "shippingAddress",
-              "isArray": false,
-              "type": "AWSJSON",
-              "isRequired": false,
-              "attributes": []
-            },
-            "billingAddress": {
-              "name": "billingAddress",
-              "isArray": false,
-              "type": "AWSJSON",
-              "isRequired": false,
-              "attributes": []
-            },
-            "shippingMethod": {
-              "name": "shippingMethod",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "trackingNumber": {
-              "name": "trackingNumber",
+            "assignedTo": {
+              "name": "assignedTo",
               "isArray": false,
               "type": "String",
               "isRequired": false,
@@ -1177,10 +1035,12 @@
               "isRequired": false,
               "attributes": []
             },
-            "idempotencyKey": {
-              "name": "idempotencyKey",
+            "source": {
+              "name": "source",
               "isArray": false,
-              "type": "String",
+              "type": {
+                "enum": "InquirySource"
+              },
               "isRequired": false,
               "attributes": []
             },
@@ -1198,40 +1058,31 @@
               "isRequired": false,
               "attributes": []
             },
-            "items": {
-              "name": "items",
-              "isArray": true,
-              "type": {
-                "model": "OrderItem"
-              },
+            "lastContactedAt": {
+              "name": "lastContactedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
               "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "orderId"
-                ]
-              }
+              "attributes": []
             },
-            "user": {
-              "name": "user",
+            "vehicle": {
+              "name": "vehicle",
               "isArray": false,
               "type": {
-                "model": "UserProfile"
+                "model": "Vehicle"
               },
               "isRequired": false,
               "attributes": [],
               "association": {
                 "connectionType": "BELONGS_TO",
                 "targetNames": [
-                  "userId"
+                  "vehicleId"
                 ]
               }
             }
           },
           "syncable": true,
-          "pluralName": "Orders",
+          "pluralName": "Inquiries",
           "attributes": [
             {
               "type": "model",
@@ -1248,8 +1099,19 @@
             {
               "type": "key",
               "properties": {
+                "name": "byVehicleCreatedAt",
+                "queryField": "listInquiryByVehicleIdAndCreatedAt",
+                "fields": [
+                  "vehicleId",
+                  "createdAt"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
                 "name": "byUserCreatedAt",
-                "queryField": "listOrderByUserIdAndCreatedAt",
+                "queryField": "listInquiryByUserIdAndCreatedAt",
                 "fields": [
                   "userId",
                   "createdAt"
@@ -1259,18 +1121,8 @@
             {
               "type": "key",
               "properties": {
-                "name": "ordersByOrderNumber",
-                "queryField": "listOrderByOrderNumber",
-                "fields": [
-                  "orderNumber"
-                ]
-              }
-            },
-            {
-              "type": "key",
-              "properties": {
                 "name": "byStatusCreatedAt",
-                "queryField": "listOrderByStatusAndCreatedAt",
+                "queryField": "listInquiryByStatusAndCreatedAt",
                 "fields": [
                   "status",
                   "createdAt"
@@ -1280,10 +1132,11 @@
             {
               "type": "key",
               "properties": {
-                "name": "ordersByIdempotencyKey",
-                "queryField": "listOrderByIdempotencyKey",
+                "name": "byAssignedCreatedAt",
+                "queryField": "listInquiryByAssignedToAndCreatedAt",
                 "fields": [
-                  "idempotencyKey"
+                  "assignedTo",
+                  "createdAt"
                 ]
               }
             },
@@ -1292,194 +1145,16 @@
               "properties": {
                 "rules": [
                   {
-                    "provider": "userPools",
-                    "ownerField": "owner",
-                    "allow": "owner",
-                    "identityClaim": "sub",
+                    "allow": "public",
+                    "provider": "iam",
                     "operations": [
-                      "create",
-                      "update",
-                      "delete",
-                      "read"
+                      "create"
                     ]
                   },
                   {
-                    "groupClaim": "cognito:groups",
-                    "provider": "userPools",
-                    "allow": "groups",
+                    "allow": "private",
                     "operations": [
                       "create",
-                      "read",
-                      "update",
-                      "delete"
-                    ],
-                    "groups": [
-                      "Admin"
-                    ]
-                  }
-                ]
-              }
-            }
-          ],
-          "primaryKeyInfo": {
-            "isCustomPrimaryKey": false,
-            "primaryKeyFieldName": "id",
-            "sortKeyFieldNames": []
-          }
-        },
-        "OrderItem": {
-          "name": "OrderItem",
-          "fields": {
-            "id": {
-              "name": "id",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "orderId": {
-              "name": "orderId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "productId": {
-              "name": "productId",
-              "isArray": false,
-              "type": "ID",
-              "isRequired": true,
-              "attributes": []
-            },
-            "quantity": {
-              "name": "quantity",
-              "isArray": false,
-              "type": "Int",
-              "isRequired": true,
-              "attributes": []
-            },
-            "priceSnapshot": {
-              "name": "priceSnapshot",
-              "isArray": false,
-              "type": "Float",
-              "isRequired": true,
-              "attributes": []
-            },
-            "titleSnapshot": {
-              "name": "titleSnapshot",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true,
-              "attributes": []
-            },
-            "imageSnapshot": {
-              "name": "imageSnapshot",
-              "isArray": false,
-              "type": "String",
-              "isRequired": false,
-              "attributes": []
-            },
-            "attributesSnapshot": {
-              "name": "attributesSnapshot",
-              "isArray": false,
-              "type": "AWSJSON",
-              "isRequired": false,
-              "attributes": []
-            },
-            "createdAt": {
-              "name": "createdAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": []
-            },
-            "order": {
-              "name": "order",
-              "isArray": false,
-              "type": {
-                "model": "Order"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "orderId"
-                ]
-              }
-            },
-            "product": {
-              "name": "product",
-              "isArray": false,
-              "type": {
-                "model": "Product"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "association": {
-                "connectionType": "BELONGS_TO",
-                "targetNames": [
-                  "productId"
-                ]
-              }
-            },
-            "updatedAt": {
-              "name": "updatedAt",
-              "isArray": false,
-              "type": "AWSDateTime",
-              "isRequired": false,
-              "attributes": [],
-              "isReadOnly": true
-            }
-          },
-          "syncable": true,
-          "pluralName": "OrderItems",
-          "attributes": [
-            {
-              "type": "model",
-              "properties": {}
-            },
-            {
-              "type": "key",
-              "properties": {
-                "fields": [
-                  "id"
-                ]
-              }
-            },
-            {
-              "type": "key",
-              "properties": {
-                "name": "orderItemsByOrderId",
-                "queryField": "listOrderItemByOrderId",
-                "fields": [
-                  "orderId"
-                ]
-              }
-            },
-            {
-              "type": "key",
-              "properties": {
-                "name": "orderItemsByProductId",
-                "queryField": "listOrderItemByProductId",
-                "fields": [
-                  "productId"
-                ]
-              }
-            },
-            {
-              "type": "auth",
-              "properties": {
-                "rules": [
-                  {
-                    "provider": "userPools",
-                    "ownerField": "owner",
-                    "allow": "owner",
-                    "identityClaim": "sub",
-                    "operations": [
-                      "create",
-                      "update",
-                      "delete",
                       "read"
                     ]
                   },
@@ -1559,19 +1234,13 @@
               "isRequired": false,
               "attributes": []
             },
-            "defaultAddressId": {
-              "name": "defaultAddressId",
-              "isArray": false,
+            "savedVehicleIds": {
+              "name": "savedVehicleIds",
+              "isArray": true,
               "type": "String",
               "isRequired": false,
-              "attributes": []
-            },
-            "addresses": {
-              "name": "addresses",
-              "isArray": false,
-              "type": "AWSJSON",
-              "isRequired": false,
-              "attributes": []
+              "attributes": [],
+              "isArrayNullable": true
             },
             "preferences": {
               "name": "preferences",
@@ -1593,22 +1262,6 @@
               "type": "AWSDateTime",
               "isRequired": false,
               "attributes": []
-            },
-            "orders": {
-              "name": "orders",
-              "isArray": true,
-              "type": {
-                "model": "Order"
-              },
-              "isRequired": false,
-              "attributes": [],
-              "isArrayNullable": true,
-              "association": {
-                "connectionType": "HAS_MANY",
-                "associatedWith": [
-                  "userId"
-                ]
-              }
             }
           },
           "syncable": true,
@@ -1803,105 +1456,162 @@
         }
       },
       "enums": {
-        "CartStatus": {
-          "name": "CartStatus",
+        "VehicleTransmission": {
+          "name": "VehicleTransmission",
           "values": [
-            "ACTIVE",
-            "CONVERTED",
-            "ABANDONED"
+            "AUTO",
+            "MANUAL",
+            "DSG",
+            "CVT"
           ]
         },
-        "OrderStatus": {
-          "name": "OrderStatus",
+        "VehicleFuelType": {
+          "name": "VehicleFuelType",
           "values": [
-            "PENDING",
-            "PAID",
-            "PROCESSING",
-            "SHIPPED",
-            "DELIVERED",
-            "CANCELLED",
-            "REFUNDED"
+            "GASOLINE",
+            "DIESEL",
+            "HYBRID",
+            "ELECTRIC",
+            "PLUGIN_HYBRID",
+            "LPG"
+          ]
+        },
+        "VehicleDriveType": {
+          "name": "VehicleDriveType",
+          "values": [
+            "FWD",
+            "RWD",
+            "AWD",
+            "FOUR_WD"
+          ]
+        },
+        "VehicleStatus": {
+          "name": "VehicleStatus",
+          "values": [
+            "AVAILABLE",
+            "RESERVED",
+            "SOLD",
+            "HIDDEN"
+          ]
+        },
+        "VehicleCondition": {
+          "name": "VehicleCondition",
+          "values": [
+            "NEW",
+            "USED",
+            "DEMO"
+          ]
+        },
+        "InquiryPreferredContactMethod": {
+          "name": "InquiryPreferredContactMethod",
+          "values": [
+            "PHONE",
+            "EMAIL",
+            "WHATSAPP"
+          ]
+        },
+        "InquiryStatus": {
+          "name": "InquiryStatus",
+          "values": [
+            "NEW",
+            "CONTACTED",
+            "QUALIFIED",
+            "CONVERTED",
+            "CLOSED_LOST"
+          ]
+        },
+        "InquirySource": {
+          "name": "InquirySource",
+          "values": [
+            "VEHICLE_PAGE",
+            "HOMEPAGE_HERO",
+            "CONTACT_PAGE",
+            "COMPARE_PAGE"
           ]
         }
       },
       "nonModels": {},
       "mutations": {
-        "placeOrderMutation": {
-          "name": "placeOrderMutation",
+        "createInquiryMutation": {
+          "name": "createInquiryMutation",
           "isArray": false,
           "type": {
-            "model": "Order"
+            "model": "Inquiry"
           },
           "isRequired": false,
           "arguments": {
-            "cartId": {
-              "name": "cartId",
+            "vehicleId": {
+              "name": "vehicleId",
               "isArray": false,
               "type": "String",
-              "isRequired": true
-            },
-            "shippingAddress": {
-              "name": "shippingAddress",
-              "isArray": false,
-              "type": "AWSJSON",
-              "isRequired": true
-            },
-            "billingAddress": {
-              "name": "billingAddress",
-              "isArray": false,
-              "type": "AWSJSON",
               "isRequired": false
             },
-            "shippingMethod": {
-              "name": "shippingMethod",
+            "fullName": {
+              "name": "fullName",
               "isArray": false,
               "type": "String",
               "isRequired": true
             },
-            "paymentMethod": {
-              "name": "paymentMethod",
+            "phone": {
+              "name": "phone",
               "isArray": false,
               "type": "String",
               "isRequired": true
             },
-            "idempotencyKey": {
-              "name": "idempotencyKey",
+            "email": {
+              "name": "email",
               "isArray": false,
               "type": "String",
-              "isRequired": true
+              "isRequired": false
+            },
+            "preferredContactMethod": {
+              "name": "preferredContactMethod",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "message": {
+              "name": "message",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "interestedInTestDrive": {
+              "name": "interestedInTestDrive",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false
+            },
+            "interestedInFinancing": {
+              "name": "interestedInFinancing",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false
+            },
+            "tradeInDescription": {
+              "name": "tradeInDescription",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            },
+            "source": {
+              "name": "source",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
             }
           }
         },
-        "enrichProductMutation": {
-          "name": "enrichProductMutation",
+        "enrichVehicleMutation": {
+          "name": "enrichVehicleMutation",
           "isArray": false,
           "type": {
-            "model": "ProductSearchMeta"
+            "model": "VehicleSearchMeta"
           },
           "isRequired": false,
           "arguments": {
-            "productId": {
-              "name": "productId",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true
-            }
-          }
-        },
-        "processPaymentWebhook": {
-          "name": "processPaymentWebhook",
-          "isArray": false,
-          "type": "AWSJSON",
-          "isRequired": false,
-          "arguments": {
-            "payload": {
-              "name": "payload",
-              "isArray": false,
-              "type": "String",
-              "isRequired": true
-            },
-            "signature": {
-              "name": "signature",
+            "vehicleId": {
+              "name": "vehicleId",
               "isArray": false,
               "type": "String",
               "isRequired": true
@@ -1913,11 +1623,11 @@
   },
   "storage": {
     "aws_region": "us-east-1",
-    "bucket_name": "amplify-ecommerceamplify--ecommercestoragebucket00-drvdza6wfmql",
+    "bucket_name": "amplify-ecommerceamplify--arbelstoragebucketf0d5a1-bmemsu60xcwg",
     "buckets": [
       {
-        "name": "ecommerceStorage",
-        "bucket_name": "amplify-ecommerceamplify--ecommercestoragebucket00-drvdza6wfmql",
+        "name": "arbelStorage",
+        "bucket_name": "amplify-ecommerceamplify--arbelstoragebucketf0d5a1-bmemsu60xcwg",
         "aws_region": "us-east-1",
         "paths": {
           "public/*": {
@@ -1937,7 +1647,7 @@
               "delete"
             ]
           },
-          "images/products/*": {
+          "images/vehicles/*": {
             "guest": [
               "get",
               "list"
@@ -1954,7 +1664,24 @@
               "delete"
             ]
           },
-          "images/categories/*": {
+          "images/makes/*": {
+            "guest": [
+              "get",
+              "list"
+            ],
+            "authenticated": [
+              "get",
+              "list",
+              "write"
+            ],
+            "groupsAdmin": [
+              "get",
+              "list",
+              "write",
+              "delete"
+            ]
+          },
+          "images/bodyTypes/*": {
             "guest": [
               "get",
               "list"

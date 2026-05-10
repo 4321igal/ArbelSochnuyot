@@ -1,103 +1,56 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { 
-  DynamoDBDocumentClient, 
-  GetCommand, 
-  PutCommand, 
-  QueryCommand, 
-  UpdateCommand,
-  DeleteCommand,
-  TransactWriteCommand,
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
 } from '@aws-sdk/lib-dynamodb';
 
-/**
- * DynamoDB Client and Operations
- * 
- * Provides typed access to DynamoDB tables for:
- * - Products
- * - Orders
- * - Carts
- * - ProductSearchMeta
- */
-
-// Types
-export interface Product {
+export interface Vehicle {
   id: string;
-  title: string;
-  description?: string;
+  makeId: string;
+  modelName: string;
+  trim?: string;
+  year: number;
+  bodyTypeId?: string;
   price: number;
-  compareAtPrice?: number;
-  currency: string;
+  listPrice?: number;
+  currency?: string;
+  mileage?: number;
+  transmission?: string;
+  fuelType?: string;
+  enginePower?: number;
+  engineCapacity?: number;
+  driveType?: string;
+  color?: string;
+  interiorColor?: string;
+  doors?: number;
+  seats?: number;
+  hand?: number;
+  previousOwners?: number;
+  accidentFree?: boolean;
+  status?: string;
+  isFeatured?: boolean;
+  condition?: string;
+  description?: string;
+  features?: string[];
   images?: string[];
-  categoryId: string;
-  brand?: string;
-  sku?: string;
-  attributes?: Record<string, unknown>;
-  stockQty: number;
-  isActive: boolean;
-  isFeatured: boolean;
-  tags?: string[];
-  createdAt: string;
-  updatedAt: string;
+  branchLocation?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface CartItem {
+export interface Make {
   id: string;
-  cartId: string;
-  productId: string;
-  quantity: number;
-  priceSnapshot: number;
-  titleSnapshot: string;
-  imageSnapshot?: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
 }
 
-export interface Cart {
+export interface VehicleSearchMeta {
   id: string;
-  userId: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Order {
-  id: string;
-  userId: string;
-  orderNumber: string;
-  status: string;
-  subtotal: number;
-  shippingCost: number;
-  taxAmount: number;
-  discountAmount: number;
-  total: number;
-  currency: string;
-  paymentMethod?: string;
-  paymentRef?: string;
-  paidAt?: string;
-  shippingAddress: unknown;
-  billingAddress: unknown;
-  shippingMethod: string;
-  trackingNumber?: string;
-  idempotencyKey?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrderItem {
-  id: string;
-  orderId: string;
-  productId: string;
-  quantity: number;
-  priceSnapshot: number;
-  titleSnapshot: string;
-  imageSnapshot?: string;
-  attributesSnapshot?: unknown;
-  createdAt: string;
-}
-
-export interface ProductSearchMeta {
-  id: string;
-  productId: string;
+  vehicleId: string;
   aiSummary?: string;
-  aiTags?: string[];
+  aiHighlights?: string[];
   aiSEO?: string;
   confidence?: number;
   language: string;
@@ -107,216 +60,74 @@ export interface ProductSearchMeta {
   updatedAt: string;
 }
 
-// Table names from environment
+export interface Inquiry {
+  id: string;
+  vehicleId?: string;
+  userId?: string;
+  fullName: string;
+  phone: string;
+  email?: string;
+  preferredContactMethod?: string;
+  message?: string;
+  interestedInTestDrive?: boolean;
+  interestedInFinancing?: boolean;
+  tradeInDescription?: string;
+  status: string;
+  source?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const getTableName = (model: string): string => {
   return process.env[`${model.toUpperCase()}_TABLE_NAME`] || model;
 };
 
-/**
- * Create DynamoDB Document Client
- */
 export function createDynamoDBClient(): DynamoDBDocumentClient {
   const client = new DynamoDBClient({});
   return DynamoDBDocumentClient.from(client, {
-    marshallOptions: {
-      removeUndefinedValues: true,
-    },
+    marshallOptions: { removeUndefinedValues: true },
   });
 }
 
-/**
- * Get product by ID
- */
-export async function getProduct(
-  client: DynamoDBDocumentClient, 
-  productId: string
-): Promise<Product | null> {
-  const command = new GetCommand({
-    TableName: getTableName('Product'),
-    Key: { id: productId },
-  });
-
-  const result = await client.send(command);
-  return (result.Item as Product) || null;
-}
-
-/**
- * Get cart by ID
- */
-export async function getCart(
-  client: DynamoDBDocumentClient, 
-  cartId: string
-): Promise<Cart | null> {
-  const command = new GetCommand({
-    TableName: getTableName('Cart'),
-    Key: { id: cartId },
-  });
-
-  const result = await client.send(command);
-  return (result.Item as Cart) || null;
-}
-
-/**
- * Get cart items by cart ID
- */
-export async function getCartItems(
-  client: DynamoDBDocumentClient, 
-  cartId: string
-): Promise<CartItem[]> {
-  const command = new QueryCommand({
-    TableName: getTableName('CartItem'),
-    IndexName: 'byCartId',
-    KeyConditionExpression: 'cartId = :cartId',
-    ExpressionAttributeValues: {
-      ':cartId': cartId,
-    },
-  });
-
-  const result = await client.send(command);
-  return (result.Items as CartItem[]) || [];
-}
-
-/**
- * Update order fields
- */
-export async function updateOrder(
+export async function getVehicle(
   client: DynamoDBDocumentClient,
-  orderId: string,
-  updates: Partial<Order>
-): Promise<void> {
-  const updateExpressions: string[] = [];
-  const expressionAttributeNames: Record<string, string> = {};
-  const expressionAttributeValues: Record<string, unknown> = {};
-
-  Object.entries(updates).forEach(([key, value], index) => {
-    const attrName = `#attr${index}`;
-    const attrValue = `:val${index}`;
-    updateExpressions.push(`${attrName} = ${attrValue}`);
-    expressionAttributeNames[attrName] = key;
-    expressionAttributeValues[attrValue] = value;
-  });
-
-  const command = new UpdateCommand({
-    TableName: getTableName('Order'),
-    Key: { id: orderId },
-    UpdateExpression: `SET ${updateExpressions.join(', ')}`,
-    ExpressionAttributeNames: expressionAttributeNames,
-    ExpressionAttributeValues: expressionAttributeValues,
-  });
-
-  await client.send(command);
+  vehicleId: string,
+): Promise<Vehicle | null> {
+  const result = await client.send(
+    new GetCommand({ TableName: getTableName('Vehicle'), Key: { id: vehicleId } }),
+  );
+  return (result.Item as Vehicle) || null;
 }
 
-/**
- * Upsert ProductSearchMeta
- */
-export async function upsertProductSearchMeta(
+export async function getMake(
   client: DynamoDBDocumentClient,
-  meta: ProductSearchMeta
-): Promise<ProductSearchMeta> {
-  const command = new PutCommand({
-    TableName: getTableName('ProductSearchMeta'),
-    Item: {
-      ...meta,
-      createdAt: meta.createdAt || new Date().toISOString(),
-    },
-  });
+  makeId: string,
+): Promise<Make | null> {
+  const result = await client.send(
+    new GetCommand({ TableName: getTableName('Make'), Key: { id: makeId } }),
+  );
+  return (result.Item as Make) || null;
+}
 
-  await client.send(command);
+export async function upsertVehicleSearchMeta(
+  client: DynamoDBDocumentClient,
+  meta: VehicleSearchMeta,
+): Promise<VehicleSearchMeta> {
+  await client.send(
+    new PutCommand({
+      TableName: getTableName('VehicleSearchMeta'),
+      Item: { ...meta, createdAt: meta.createdAt || new Date().toISOString() },
+    }),
+  );
   return meta;
 }
 
-/**
- * Create order with items in a transaction
- * 
- * This ensures atomic creation of:
- * 1. Order record
- * 2. All OrderItem records
- * 3. Cart status update
- * 4. Stock decrement (optional)
- */
-export async function transactWriteOrder(
+export async function putInquiry(
   client: DynamoDBDocumentClient,
-  order: Order,
-  cartItems: CartItem[],
-  cartId: string
-): Promise<Order> {
-  const now = new Date().toISOString();
-
-  // Build transaction items
-  const transactItems = [
-    // Create order
-    {
-      Put: {
-        TableName: getTableName('Order'),
-        Item: order,
-        ConditionExpression: 'attribute_not_exists(id)',
-      },
-    },
-    // Update cart status to CONVERTED
-    {
-      Update: {
-        TableName: getTableName('Cart'),
-        Key: { id: cartId },
-        UpdateExpression: 'SET #status = :status, updatedAt = :now',
-        ExpressionAttributeNames: { '#status': 'status' },
-        ExpressionAttributeValues: { 
-          ':status': 'CONVERTED',
-          ':now': now,
-        },
-      },
-    },
-  ];
-
-  // Create order items
-  for (const item of cartItems) {
-    const orderItem: OrderItem = {
-      id: `oi-${order.id}-${item.productId}`,
-      orderId: order.id,
-      productId: item.productId,
-      quantity: item.quantity,
-      priceSnapshot: item.priceSnapshot,
-      titleSnapshot: item.titleSnapshot,
-      imageSnapshot: item.imageSnapshot,
-      createdAt: now,
-    };
-
-    transactItems.push({
-      Put: {
-        TableName: getTableName('OrderItem'),
-        Item: orderItem,
-        ConditionExpression: 'attribute_not_exists(id)',
-      },
-    });
-
-    // Optionally decrement stock
-    // transactItems.push({
-    //   Update: {
-    //     TableName: getTableName('Product'),
-    //     Key: { id: item.productId },
-    //     UpdateExpression: 'SET stockQty = stockQty - :qty',
-    //     ConditionExpression: 'stockQty >= :qty',
-    //     ExpressionAttributeValues: { ':qty': item.quantity },
-    //   },
-    // });
-  }
-
-  // Delete cart items
-  for (const item of cartItems) {
-    transactItems.push({
-      Delete: {
-        TableName: getTableName('CartItem'),
-        Key: { id: item.id },
-      },
-    });
-  }
-
-  // Execute transaction
-  const command = new TransactWriteCommand({
-    TransactItems: transactItems,
-  });
-
-  await client.send(command);
-
-  return order;
+  inquiry: Inquiry,
+): Promise<Inquiry> {
+  await client.send(
+    new PutCommand({ TableName: getTableName('Inquiry'), Item: inquiry }),
+  );
+  return inquiry;
 }

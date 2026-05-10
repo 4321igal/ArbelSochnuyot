@@ -7,23 +7,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Custom brand colors
+        // Arbel brand palette — deep navy + warm gold accent
         brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
+          50: '#f1f5f9',
+          100: '#e2e8f0',
+          200: '#cbd5e1',
+          300: '#94a3b8',
+          400: '#64748b',
+          500: '#334155',
+          600: '#1e293b',
+          700: '#172033',
+          800: '#0f172a',
+          900: '#0a0f1d',
+          950: '#05080f',
+        },
+        accent: {
+          50: '#fdf8e7',
+          100: '#fbf0c4',
+          200: '#f7e088',
+          300: '#f1ca47',
+          400: '#e6b322',
+          500: '#d4af37',
+          600: '#b08d20',
+          700: '#876b18',
+          800: '#5e4a10',
+          900: '#3d3010',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Heebo', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',
@@ -65,28 +77,7 @@ export default {
           '50%': { transform: 'translateY(-5px)' },
         },
       },
-      typography: {
-        DEFAULT: {
-          css: {
-            maxWidth: 'none',
-            color: '#374151',
-            a: {
-              color: '#4f46e5',
-              '&:hover': {
-                color: '#4338ca',
-              },
-            },
-          },
-        },
-      },
     },
   },
-  plugins: [
-    // Add prose plugin for rich text content
-    // require('@tailwindcss/typography'),
-    // Add forms plugin for better form styling
-    // require('@tailwindcss/forms'),
-    // Add aspect ratio plugin
-    // require('@tailwindcss/aspect-ratio'),
-  ],
+  plugins: [],
 }

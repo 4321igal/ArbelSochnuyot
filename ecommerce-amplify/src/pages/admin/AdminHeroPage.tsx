@@ -7,9 +7,7 @@ import {
   resolvePublicHero,
   type SiteHero,
 } from '@/lib/api/siteHero';
-import {
-  uploadHeroImage,
-} from '@/lib/api/storage';
+import { uploadHeroImage } from '@/lib/api/storage';
 import { compressHeroImageForUpload, validateHeroImageFile } from '@/lib/hero/heroImage';
 import { PublicHeroSection } from '@/components/hero/PublicHeroSection';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -45,10 +43,10 @@ export function AdminHeroPage() {
         setTitle(merged.title);
         setSubtitle(merged.subtitle ?? '');
         setCtaText(merged.ctaText ?? '');
-        setCtaLink(merged.ctaLink ?? '/');
+        setCtaLink(merged.ctaLink ?? '/inventory');
         setImageKey(row?.imageKey ?? null);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load hero');
+        if (!cancelled) setError(e instanceof Error ? e.message : 'טעינת ה-Hero נכשלה');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -94,10 +92,10 @@ export function AdminHeroPage() {
       setImageKey(key);
       URL.revokeObjectURL(previewUrl);
       setFilePreview(null);
-      showToast('success', 'Image uploaded');
+      showToast('success', 'התמונה הועלתה');
     } catch (err) {
       URL.revokeObjectURL(previewUrl);
-      const msg = err instanceof Error ? err.message : 'Upload failed';
+      const msg = err instanceof Error ? err.message : 'העלאה נכשלה';
       setError(msg);
       showToast('error', msg);
       setFilePreview(null);
@@ -118,9 +116,9 @@ export function AdminHeroPage() {
         ctaLink: ctaLink || '/',
         imageKey,
       });
-      showToast('success', 'Hero saved');
+      showToast('success', 'ה-Hero נשמר');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Save failed';
+      const msg = err instanceof Error ? err.message : 'שמירה נכשלה';
       setError(msg);
       showToast('error', msg);
     } finally {
@@ -137,7 +135,7 @@ export function AdminHeroPage() {
   if (authLoading) {
     return (
       <div className="flex justify-center py-24">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-600 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-700 border-t-transparent" />
       </div>
     );
   }
@@ -145,27 +143,25 @@ export function AdminHeroPage() {
   if (!isAdmin) {
     return (
       <div className="rounded-lg bg-amber-50 border border-amber-200 p-6 text-amber-900">
-        Admin access required to edit the site hero.
-        <Link to="/admin" className="ml-2 text-indigo-600 underline">
-          Dashboard
-        </Link>
+        נדרשת הרשאת אדמין כדי לערוך את ה-Hero.
+        <Link to="/admin" className="ms-2 text-brand-700 underline">דשבורד</Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-5xl">
+    <div className="space-y-6 max-w-5xl">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Homepage hero</h1>
-        <Link to="/" className="text-indigo-600 hover:underline text-sm">
-          View store
-        </Link>
+        <h1 className="text-2xl font-bold text-brand-900">תמונת Hero בדף הבית</h1>
+        <Link to="/" className="text-brand-700 hover:underline text-sm">צפה באתר</Link>
       </div>
 
       {toast && (
         <div
           className={`rounded-lg px-4 py-3 text-sm ${
-            toast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+            toast.type === 'success'
+              ? 'bg-green-50 text-green-800 border border-green-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
           }`}
         >
           {toast.message}
@@ -173,57 +169,59 @@ export function AdminHeroPage() {
       )}
 
       {error && (
-        <div className="rounded-lg bg-red-50 text-red-800 border border-red-200 px-4 py-3 text-sm">{error}</div>
+        <div className="rounded-lg bg-red-50 text-red-800 border border-red-200 px-4 py-3 text-sm">
+          {error}
+        </div>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <form onSubmit={onSubmit} className="space-y-4 bg-white rounded-lg shadow p-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <form onSubmit={onSubmit} className="space-y-4 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <label className="label">כותרת</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
               required
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+            <label className="label">כותרת משנה</label>
             <textarea
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
               maxLength={500}
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">CTA label</label>
+            <label className="label">טקסט הכפתור</label>
             <input
               type="text"
               value={ctaText}
               onChange={(e) => setCtaText(e.target.value)}
               maxLength={80}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">CTA link</label>
+            <label className="label">קישור הכפתור</label>
             <input
               type="text"
               value={ctaLink}
               onChange={(e) => setCtaLink(e.target.value)}
-              placeholder="/category/all or https://…"
+              placeholder="/inventory או https://…"
               maxLength={500}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              className="input"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Hero image</label>
-            <p className="text-xs text-gray-500 mb-2">JPG, PNG, or WebP — max 2MB. Compressed to max width {1920}px before upload.</p>
+            <label className="label">תמונת רקע</label>
+            <p className="text-xs text-gray-500 mb-2">JPG, PNG או WebP — עד 2MB. דחיסה אוטומטית לרוחב מקסימלי 1920px.</p>
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -234,45 +232,33 @@ export function AdminHeroPage() {
             {uploadPct !== null && (
               <div className="mt-2 h-2 bg-gray-200 rounded overflow-hidden">
                 <div
-                  className="h-full bg-indigo-600 transition-all duration-300"
+                  className="h-full bg-brand-700 transition-all duration-300"
                   style={{ width: `${uploadPct}%` }}
                 />
               </div>
             )}
             {imageKey && (
-              <button
-                type="button"
-                onClick={clearImage}
-                className="mt-2 text-sm text-red-600 hover:underline"
-              >
-                Remove image (gradient only)
+              <button type="button" onClick={clearImage} className="mt-2 text-sm text-red-600 hover:underline">
+                הסר תמונה (רק גרדיאנט)
               </button>
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={saving || loading}
-            className="w-full sm:w-auto bg-indigo-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {saving ? 'Saving…' : 'Save hero'}
+          <button type="submit" disabled={saving || loading} className="btn-accent">
+            {saving ? 'שומר…' : 'שמור Hero'}
           </button>
         </form>
 
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Live preview</h2>
-          <div className="rounded-lg overflow-hidden shadow-lg border border-gray-200 ring-1 ring-black/5">
+          <h2 className="text-lg font-semibold text-brand-900 mb-3">תצוגה מקדימה חיה</h2>
+          <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200 ring-1 ring-black/5">
             <PublicHeroSection hero={previewHero} backgroundOverrideUrl={filePreview} />
           </div>
           {filePreview && !imageKey && (
-            <p className="text-xs text-gray-500 mt-2">Local preview only — upload finished when progress completes.</p>
+            <p className="text-xs text-gray-500 mt-2">תצוגה מקומית בלבד — ההעלאה תסתיים כשהמדדן יסתיים.</p>
           )}
         </div>
       </div>
-
-      {loading && (
-        <p className="text-gray-500 text-sm">Loading current hero…</p>
-      )}
     </div>
   );
 }

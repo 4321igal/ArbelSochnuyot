@@ -1,225 +1,156 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listProducts } from '../../lib/api/products';
-import { listAllOrders } from '../../lib/api/orders';
+import { Car, Phone, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import { listVehicles } from '@/lib/api/vehicles';
+import { listAllInquiries, type Inquiry, type InquiryStatus } from '@/lib/api/inquiries';
 
-/**
- * Admin Dashboard
- */
+const STATUS_LABEL: Record<InquiryStatus, { label: string; cls: string }> = {
+  NEW: { label: 'חדש', cls: 'bg-blue-100 text-blue-800' },
+  CONTACTED: { label: 'נוצר קשר', cls: 'bg-amber-100 text-amber-800' },
+  QUALIFIED: { label: 'בטיפול', cls: 'bg-indigo-100 text-indigo-800' },
+  CONVERTED: { label: 'הומר', cls: 'bg-green-100 text-green-800' },
+  CLOSED_LOST: { label: 'נסגר', cls: 'bg-gray-100 text-gray-700' },
+};
+
+function isThisMonth(iso: string): boolean {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  } catch {
+    return false;
+  }
+}
+
 export function AdminDashboard() {
   const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalOrders: 0,
-    pendingOrders: 0,
-    revenue: 0,
+    activeVehicles: 0,
+    newInquiries: 0,
+    monthlyInquiries: 0,
+    convertedInquiries: 0,
   });
-  const [recentOrders, setRecentOrders] = useState<Array<{
-    id: string;
-    orderNumber: string;
-    status: string;
-    total: number;
-    createdAt: string;
-  }>>([]);
+  const [recentInquiries, setRecentInquiries] = useState<Inquiry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadDashboard() {
+    let cancelled = false;
+    (async () => {
+      setIsLoading(true);
       try {
-        const [products, orders] = await Promise.all([
-          listProducts({ limit: 1 }),
-          listAllOrders({ limit: 10 }),
+        const [vehiclesResult, allInquiries] = await Promise.all([
+          listVehicles({ status: 'AVAILABLE', limit: 200 }),
+          listAllInquiries(),
         ]);
-
-        // Calculate stats
-        const pendingOrders = orders.items.filter(o => o.status === 'PENDING').length;
-        const revenue = orders.items
-          .filter(o => o.status === 'PAID' || o.status === 'DELIVERED')
-          .reduce((sum, o) => sum + o.total, 0);
-
+        if (cancelled) return;
         setStats({
-          totalProducts: products.items.length,
-          totalOrders: orders.items.length,
-          pendingOrders,
-          revenue,
+          activeVehicles: vehiclesResult.items.length,
+          newInquiries: allInquiries.filter((i) => i.status === 'NEW').length,
+          monthlyInquiries: allInquiries.filter((i) => isThisMonth(i.createdAt)).length,
+          convertedInquiries: allInquiries.filter((i) => i.status === 'CONVERTED').length,
         });
-
-        setRecentOrders(orders.items.slice(0, 5).map(o => ({
-          id: o.id,
-          orderNumber: o.orderNumber,
-          status: o.status,
-          total: o.total,
-          createdAt: o.createdAt || '',
-        })));
-      } catch (error) {
-        console.error('Failed to load dashboard:', error);
+        setRecentInquiries(allInquiries.slice(0, 8));
+      } catch (e) {
+        console.error('Failed to load dashboard:', e);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
-    }
-    loadDashboard();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PAID':
-      case 'DELIVERED':
-        return 'bg-green-100 text-green-800';
-      case 'PROCESSING':
-      case 'SHIPPED':
-        return 'bg-blue-100 text-blue-800';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Products</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? '...' : stats.totalProducts}
-              </p>
-            </div>
-            <div className="bg-indigo-100 p-3 rounded-full">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
-          </div>
-          <Link to="/admin/products" className="text-sm text-indigo-600 hover:text-indigo-700 mt-4 block">
-            View All →
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Orders</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? '...' : stats.totalOrders}
-              </p>
-            </div>
-            <div className="bg-green-100 p-3 rounded-full">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-          </div>
-          <Link to="/admin/orders" className="text-sm text-indigo-600 hover:text-indigo-700 mt-4 block">
-            View All →
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Pending Orders</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {isLoading ? '...' : stats.pendingOrders}
-              </p>
-            </div>
-            <div className="bg-yellow-100 p-3 rounded-full">
-              <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <Link to="/admin/orders?status=PENDING" className="text-sm text-indigo-600 hover:text-indigo-700 mt-4 block">
-            Process Now →
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? '...' : `₪${stats.revenue.toFixed(2)}`}
-              </p>
-            </div>
-            <div className="bg-purple-100 p-3 rounded-full">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="רכבים זמינים"
+          value={isLoading ? '...' : stats.activeVehicles}
+          icon={<Car className="w-6 h-6" />}
+          color="bg-brand-100 text-brand-700"
+          link="/admin/vehicles"
+        />
+        <StatCard
+          label="פניות חדשות"
+          value={isLoading ? '...' : stats.newInquiries}
+          icon={<AlertCircle className="w-6 h-6" />}
+          color="bg-amber-100 text-amber-700"
+          link="/admin/inquiries?status=NEW"
+        />
+        <StatCard
+          label="פניות החודש"
+          value={isLoading ? '...' : stats.monthlyInquiries}
+          icon={<Phone className="w-6 h-6" />}
+          color="bg-blue-100 text-blue-700"
+          link="/admin/inquiries"
+        />
+        <StatCard
+          label="הומרו לעסקה"
+          value={isLoading ? '...' : stats.convertedInquiries}
+          icon={<Phone className="w-6 h-6" />}
+          color="bg-green-100 text-green-700"
+          link="/admin/inquiries?status=CONVERTED"
+        />
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="flex flex-wrap gap-4">
-          <Link
-            to="/admin/products/new"
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700"
-          >
-            + Add Product
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-bold text-brand-900 mb-4">פעולות מהירות</h2>
+        <div className="flex flex-wrap gap-3">
+          <Link to="/admin/vehicles/new" className="btn-accent">
+            <Plus className="w-4 h-4" />
+            הוסף רכב
           </Link>
-          <Link
-            to="/admin/categories"
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50"
-          >
-            Manage Categories
+          <Link to="/admin/inquiries?status=NEW" className="btn-secondary">
+            פניות חדשות לטיפול
           </Link>
-          <Link
-            to="/admin/orders?status=PENDING"
-            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50"
-          >
-            Process Orders
+          <Link to="/admin/makes" className="btn-secondary">
+            ניהול יצרנים
           </Link>
         </div>
       </div>
 
-      {/* Recent Orders */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Recent Orders</h2>
-          <Link to="/admin/orders" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-            View All →
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="flex justify-between items-center p-6 border-b border-gray-100">
+          <h2 className="text-lg font-bold text-brand-900">פניות אחרונות</h2>
+          <Link to="/admin/inquiries" className="text-brand-700 hover:text-brand-800 text-sm font-medium">
+            הצג הכל ←
           </Link>
         </div>
 
         {isLoading ? (
-          <div className="animate-pulse space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded" />
-            ))}
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-6 h-6 animate-spin text-brand-700" />
           </div>
-        ) : recentOrders.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No orders yet</p>
+        ) : recentInquiries.length === 0 ? (
+          <p className="text-gray-500 text-center py-10">עדיין לא התקבלו פניות</p>
         ) : (
-          <table className="w-full">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-sm text-gray-500 border-b">
-                <th className="pb-3">Order</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3">Total</th>
-                <th className="pb-3">Date</th>
+              <tr className="text-right text-xs text-gray-500 border-b border-gray-100">
+                <th className="px-6 py-3 font-medium">שם</th>
+                <th className="px-6 py-3 font-medium">טלפון</th>
+                <th className="px-6 py-3 font-medium">סטטוס</th>
+                <th className="px-6 py-3 font-medium">תאריך</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
-              {recentOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="py-3">
-                    <Link to={`/admin/orders/${order.id}`} className="text-indigo-600 hover:text-indigo-700 font-medium">
-                      {order.orderNumber}
+            <tbody className="divide-y divide-gray-100">
+              {recentInquiries.map((i) => (
+                <tr key={i.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-3">
+                    <Link to={`/admin/inquiries/${i.id}`} className="text-brand-700 hover:text-brand-800 font-medium">
+                      {i.fullName}
                     </Link>
                   </td>
-                  <td className="py-3">
-                    <span className={`px-2 py-1 text-xs font-bold rounded ${getStatusColor(order.status)}`}>
-                      {order.status}
+                  <td className="px-6 py-3 text-gray-700">
+                    <a href={`tel:${i.phone}`} className="hover:text-brand-700">{i.phone}</a>
+                  </td>
+                  <td className="px-6 py-3">
+                    <span className={`badge ${STATUS_LABEL[i.status].cls}`}>
+                      {STATUS_LABEL[i.status].label}
                     </span>
                   </td>
-                  <td className="py-3 font-medium">₪{order.total.toFixed(2)}</td>
-                  <td className="py-3 text-gray-500 text-sm">
-                    {new Date(order.createdAt).toLocaleDateString()}
+                  <td className="px-6 py-3 text-gray-500 text-xs">
+                    {new Date(i.createdAt).toLocaleDateString('he-IL')}
                   </td>
                 </tr>
               ))}
@@ -229,4 +160,31 @@ export function AdminDashboard() {
       </div>
     </div>
   );
+}
+
+function StatCard({
+  label,
+  value,
+  icon,
+  color,
+  link,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  color: string;
+  link?: string;
+}) {
+  const inner = (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs text-gray-500 mb-1">{label}</p>
+          <p className="text-2xl font-bold text-brand-900">{value}</p>
+        </div>
+        <div className={`p-3 rounded-full ${color}`}>{icon}</div>
+      </div>
+    </div>
+  );
+  return link ? <Link to={link}>{inner}</Link> : inner;
 }

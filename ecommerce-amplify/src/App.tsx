@@ -6,23 +6,25 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { AdminRoute } from './components/auth/AdminRoute';
 import {
   HomePage,
-  CategoryPage,
-  ProductPage,
+  InventoryPage,
+  VehiclePage,
   SearchPage,
-  CartPage,
+  ContactPage,
+  FinanceCalculatorPage,
+  ComparePage,
+  FavoritesPage,
   AuthPage,
-  CheckoutPage,
-  OrdersPage,
   AccountPage,
+  MyInquiriesPage,
   AdminDashboard,
-  UnifiedAdminProducts,
-  AdminProductForm,
-  AdminCategories,
-  AdminOrders,
-  AdminOrderDetail,
+  AdminVehicles,
+  AdminVehicleForm,
+  AdminMakes,
+  AdminBodyTypes,
+  AdminInquiries,
+  AdminInquiryDetail,
   AdminImportCSV,
   AdminHeroPage,
-  AdminHomePageManagement,
   LazySuspense,
 } from './routes/lazy';
 
@@ -31,32 +33,51 @@ export default function App() {
     <Routes>
       <Route path="/" element={<MainLayout />}>
         <Route index element={<LazySuspense><HomePage /></LazySuspense>} />
-        <Route path="category/:slug" element={<LazySuspense><CategoryPage /></LazySuspense>} />
-        <Route path="product/:id" element={<LazySuspense><ProductPage /></LazySuspense>} />
+        <Route path="inventory" element={<LazySuspense><InventoryPage /></LazySuspense>} />
+        <Route path="inventory/:makeSlug" element={<LazySuspense><InventoryPage /></LazySuspense>} />
+        <Route path="vehicle/:id" element={<LazySuspense><VehiclePage /></LazySuspense>} />
         <Route path="search" element={<LazySuspense><SearchPage /></LazySuspense>} />
-        <Route path="cart" element={<LazySuspense><CartPage /></LazySuspense>} />
+        <Route path="contact" element={<LazySuspense><ContactPage /></LazySuspense>} />
+        <Route path="finance" element={<LazySuspense><FinanceCalculatorPage /></LazySuspense>} />
+        <Route path="compare" element={<LazySuspense><ComparePage /></LazySuspense>} />
+        <Route path="favorites" element={<LazySuspense><FavoritesPage /></LazySuspense>} />
         <Route path="auth" element={<LazySuspense><AuthPage /></LazySuspense>} />
 
         <Route element={<ProtectedRoute />}>
-          <Route path="checkout" element={<LazySuspense><CheckoutPage /></LazySuspense>} />
-          <Route path="orders" element={<LazySuspense><OrdersPage /></LazySuspense>} />
           <Route path="account" element={<LazySuspense><AccountPage /></LazySuspense>} />
+          <Route path="my-inquiries" element={<LazySuspense><MyInquiriesPage /></LazySuspense>} />
         </Route>
+
+        {/* Legacy redirects */}
+        <Route path="category/:slug" element={<Navigate to="/inventory" replace />} />
+        <Route path="product/:id" element={<Navigate to="/inventory" replace />} />
+        <Route path="cart" element={<Navigate to="/inventory" replace />} />
+        <Route path="checkout" element={<Navigate to="/inventory" replace />} />
+        <Route path="orders" element={<Navigate to="/my-inquiries" replace />} />
       </Route>
 
       <Route element={<AdminRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<LazySuspense><AdminDashboard /></LazySuspense>} />
-          <Route path="products" element={<LazySuspense><UnifiedAdminProducts /></LazySuspense>} />
-          <Route path="products/new" element={<LazySuspense><AdminProductForm /></LazySuspense>} />
-          <Route path="products/:id/edit" element={<LazySuspense><AdminProductForm /></LazySuspense>} />
-          <Route path="categories" element={<LazySuspense><AdminCategories /></LazySuspense>} />
-          <Route path="orders" element={<LazySuspense><AdminOrders /></LazySuspense>} />
-          <Route path="orders/:id" element={<LazySuspense><AdminOrderDetail /></LazySuspense>} />
+          <Route path="vehicles" element={<LazySuspense><AdminVehicles /></LazySuspense>} />
+          <Route path="vehicles/new" element={<LazySuspense><AdminVehicleForm /></LazySuspense>} />
+          <Route path="vehicles/:id/edit" element={<LazySuspense><AdminVehicleForm /></LazySuspense>} />
+          <Route path="makes" element={<LazySuspense><AdminMakes /></LazySuspense>} />
+          <Route path="body-types" element={<LazySuspense><AdminBodyTypes /></LazySuspense>} />
+          <Route path="inquiries" element={<LazySuspense><AdminInquiries /></LazySuspense>} />
+          <Route path="inquiries/:id" element={<LazySuspense><AdminInquiryDetail /></LazySuspense>} />
           <Route path="import-csv" element={<LazySuspense><AdminImportCSV /></LazySuspense>} />
           <Route path="hero" element={<LazySuspense><AdminHeroPage /></LazySuspense>} />
-          <Route path="homepage" element={<LazySuspense><AdminHomePageManagement /></LazySuspense>} />
-          <Route path="manager-product" element={<Navigate to="/admin/products" replace />} />
+
+          {/* Legacy redirects */}
+          <Route path="products" element={<Navigate to="/admin/vehicles" replace />} />
+          <Route path="products/new" element={<Navigate to="/admin/vehicles/new" replace />} />
+          <Route path="products/:id/edit" element={<Navigate to="/admin/vehicles" replace />} />
+          <Route path="categories" element={<Navigate to="/admin/makes" replace />} />
+          <Route path="orders" element={<Navigate to="/admin/inquiries" replace />} />
+          <Route path="orders/:id" element={<Navigate to="/admin/inquiries" replace />} />
+          <Route path="manager-product" element={<Navigate to="/admin/vehicles" replace />} />
+          <Route path="homepage" element={<Navigate to="/admin" replace />} />
         </Route>
       </Route>
     </Routes>

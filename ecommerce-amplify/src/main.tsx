@@ -4,20 +4,21 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { configureAmplify } from './lib/amplify/configure';
 import { AuthProvider } from './lib/auth/AuthContext';
-import { CartProvider } from './lib/cart/CartContext';
+import { CompareProvider } from './lib/compare/CompareContext';
+import { FavoritesProvider } from './lib/favorites/FavoritesContext';
 import './styles/index.css';
 
-// Amplify must be configured once before any Amplify API (Auth, Data, Storage) is used.
-// Do not import or render components that use Amplify before this line.
 configureAmplify();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <CartProvider>
-          <App />
-        </CartProvider>
+        <CompareProvider>
+          <FavoritesProvider>
+            <App />
+          </FavoritesProvider>
+        </CompareProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>,

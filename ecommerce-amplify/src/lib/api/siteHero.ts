@@ -25,10 +25,10 @@ export interface SiteHeroInput {
 /** Shown when no DB row exists yet */
 export const DEFAULT_SITE_HERO: Omit<SiteHero, 'updatedAt'> = {
   id: SITE_HERO_ID,
-  title: 'Shop the Best Deals',
-  subtitle: 'Discover amazing products at unbeatable prices. Free shipping on orders over ₪200.',
-  ctaText: 'Shop Now',
-  ctaLink: '/category/all',
+  title: 'ערבל סוכנויות — הרכב הבא שלך כאן',
+  subtitle: 'מאות רכבי יד שנייה ורכבים חדשים, מימון בתנאים מצוינים, ליווי אישי וביטחון מלא.',
+  ctaText: 'לקטלוג הרכבים',
+  ctaLink: '/inventory',
   imageKey: null,
 };
 
