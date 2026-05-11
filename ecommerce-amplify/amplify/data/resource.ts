@@ -67,6 +67,7 @@ const schema = a.schema({
       firstRegistrationDate: a.date(),
       hand: a.integer(),
       previousOwners: a.integer(),
+      ownershipType: a.enum(['PRIVATE', 'LEASING', 'RENTAL', 'TAXI', 'COMPANY', 'IMPORTER']),
       accidentFree: a.boolean().default(true),
       inspectionExpiryDate: a.date(),
       status: a.enum(['AVAILABLE', 'RESERVED', 'SOLD', 'HIDDEN']),

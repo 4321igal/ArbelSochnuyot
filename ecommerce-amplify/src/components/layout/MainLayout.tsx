@@ -20,7 +20,7 @@ export function MainLayout() {
             <Link to="/" className="flex items-center gap-2 shrink-0">
               <Car className="w-7 h-7 text-accent-500" />
               <div className="flex flex-col leading-none">
-                <span className="text-xl font-bold">ערבל</span>
+                <span className="text-xl font-bold">ארבל</span>
                 <span className="text-[10px] text-accent-300 tracking-widest">סוכנויות רכב</span>
               </div>
             </Link>
@@ -137,7 +137,7 @@ export function MainLayout() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Car className="w-6 h-6 text-accent-500" />
-                <span className="text-lg font-bold text-white">ערבל סוכנויות</span>
+                <span className="text-lg font-bold text-white">ארבל סוכנויות</span>
               </div>
               <p className="text-sm leading-relaxed">
                 סוכנות רכב מובילה — מאות רכבים יד שנייה ורכבים חדשים, ליווי אישי, מימון והעברת בעלות.
@@ -177,7 +177,7 @@ export function MainLayout() {
           </div>
 
           <div className="border-t border-white/10 mt-8 pt-6 text-center text-sm">
-            <p>&copy; {new Date().getFullYear()} ערבל סוכנויות. כל הזכויות שמורות.</p>
+            <p>&copy; {new Date().getFullYear()} ארבל סוכנויות. כל הזכויות שמורות.</p>
           </div>
         </div>
       </footer>
