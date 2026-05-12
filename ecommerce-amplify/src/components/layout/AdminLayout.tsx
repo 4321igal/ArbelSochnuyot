@@ -38,7 +38,7 @@ export function AdminLayout() {
           <Link to="/" className="flex items-center gap-2">
             <Car className="w-6 h-6 text-accent-500" />
             <div className="leading-none">
-              <div className="text-base font-bold">ערבל סוכנויות</div>
+              <div className="text-base font-bold">ארבל סוכנויות</div>
               <div className="text-[10px] text-accent-300 mt-1">לוח בקרה</div>
             </div>
           </Link>

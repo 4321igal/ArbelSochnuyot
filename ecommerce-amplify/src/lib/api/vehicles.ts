@@ -5,6 +5,7 @@ export type VehicleCondition = 'NEW' | 'USED' | 'DEMO';
 export type Transmission = 'AUTO' | 'MANUAL' | 'DSG' | 'CVT';
 export type FuelType = 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC' | 'PLUGIN_HYBRID' | 'LPG';
 export type DriveType = 'FWD' | 'RWD' | 'AWD' | 'FOUR_WD';
+export type OwnershipType = 'PRIVATE' | 'LEASING' | 'RENTAL' | 'TAXI' | 'COMPANY' | 'IMPORTER';
 
 export interface Vehicle {
   id: string;
@@ -31,6 +32,7 @@ export interface Vehicle {
   firstRegistrationDate?: string | null;
   hand?: number | null;
   previousOwners?: number | null;
+  ownershipType?: OwnershipType | null;
   accidentFree?: boolean | null;
   inspectionExpiryDate?: string | null;
   status: VehicleStatus;
@@ -89,6 +91,7 @@ function mapVehicle(v: any): Vehicle {
     firstRegistrationDate: v.firstRegistrationDate ?? null,
     hand: v.hand ?? null,
     previousOwners: v.previousOwners ?? null,
+    ownershipType: v.ownershipType ?? null,
     accidentFree: v.accidentFree ?? null,
     inspectionExpiryDate: v.inspectionExpiryDate ?? null,
     status: v.status ?? 'AVAILABLE',

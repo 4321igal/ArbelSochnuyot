@@ -73,7 +73,7 @@ function HeroSection({ hero }: { hero: SiteHero }) {
       <div className="container-wide relative z-10 py-20">
         <div className="max-w-2xl">
           <span className="inline-block bg-accent-500 text-brand-900 text-xs font-bold px-3 py-1 rounded-full mb-6">
-            ערבל סוכנויות
+            ארבל סוכנויות
           </span>
           <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight text-balance">
             {hero.title}
@@ -200,7 +200,7 @@ function WhyArbelSection() {
   return (
     <section className="bg-white py-16">
       <div className="container-wide">
-        <h2 className="text-3xl font-bold text-brand-900 text-center mb-2">למה ערבל?</h2>
+        <h2 className="text-3xl font-bold text-brand-900 text-center mb-2">למה ארבל?</h2>
         <p className="text-gray-600 text-center mb-12">היתרונות שמבדילים אותנו מסוכנויות אחרות</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {items.map((item) => (

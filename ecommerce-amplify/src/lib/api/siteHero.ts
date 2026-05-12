@@ -25,7 +25,7 @@ export interface SiteHeroInput {
 /** Shown when no DB row exists yet */
 export const DEFAULT_SITE_HERO: Omit<SiteHero, 'updatedAt'> = {
   id: SITE_HERO_ID,
-  title: 'ערבל סוכנויות — הרכב הבא שלך כאן',
+  title: 'ארבל סוכנויות — הרכב הבא שלך כאן',
   subtitle: 'מאות רכבי יד שנייה ורכבים חדשים, מימון בתנאים מצוינים, ליווי אישי וביטחון מלא.',
   ctaText: 'לקטלוג הרכבים',
   ctaLink: '/inventory',

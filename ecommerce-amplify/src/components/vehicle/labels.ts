@@ -1,4 +1,4 @@
-import type { Transmission, FuelType, DriveType, VehicleCondition, VehicleStatus } from '@/lib/api/vehicles';
+import type { Transmission, FuelType, DriveType, VehicleCondition, VehicleStatus, OwnershipType } from '@/lib/api/vehicles';
 
 export const TRANSMISSION_LABELS: Record<Transmission, string> = {
   AUTO: 'אוטומטית',
@@ -34,6 +34,15 @@ export const STATUS_LABELS: Record<VehicleStatus, string> = {
   RESERVED: 'שמור',
   SOLD: 'נמכר',
   HIDDEN: 'מוסתר',
+};
+
+export const OWNERSHIP_TYPE_LABELS: Record<OwnershipType, string> = {
+  PRIVATE: 'פרטית',
+  LEASING: 'ליסינג',
+  RENTAL: 'השכרה',
+  TAXI: 'מונית',
+  COMPANY: 'חברה',
+  IMPORTER: 'יבואן',
 };
 
 export const COMMON_FEATURES = [
