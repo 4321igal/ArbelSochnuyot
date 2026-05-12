@@ -14,8 +14,31 @@ const schema = a.schema({
       createdAt: a.datetime(),
       updatedAt: a.datetime(),
       vehicles: a.hasMany('Vehicle', 'makeId'),
+      vehicleModels: a.hasMany('VehicleModel', 'makeId'),
     })
     .secondaryIndexes((index) => [index('slug')])
+    .authorization((allow) => [
+      allow.guest().to(['read']),
+      allow.authenticated().to(['read']),
+      allow.group('Admin').to(['create', 'read', 'update', 'delete']),
+    ]),
+
+  VehicleModel: a
+    .model({
+      id: a.id().required(),
+      makeId: a.id().required(),
+      name: a.string().required(),
+      slug: a.string().required(),
+      sortOrder: a.integer().default(0),
+      isActive: a.boolean().default(true),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime(),
+      make: a.belongsTo('Make', 'makeId'),
+    })
+    .secondaryIndexes((index) => [
+      index('makeId').sortKeys(['name']).name('byMakeName'),
+      index('slug'),
+    ])
     .authorization((allow) => [
       allow.guest().to(['read']),
       allow.authenticated().to(['read']),

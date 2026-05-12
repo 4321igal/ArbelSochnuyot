@@ -10,6 +10,11 @@ import {
 } from '@/lib/api/vehicles';
 import { listMakes, type Make } from '@/lib/api/makes';
 import { listBodyTypes, type BodyType } from '@/lib/api/bodyTypes';
+import {
+  listModelsByMake,
+  createVehicleModel,
+  type VehicleModel,
+} from '@/lib/api/vehicleModels';
 
 import { WizardStepper } from './WizardStepper';
 import { WizardNavigation } from './WizardNavigation';
@@ -125,6 +130,8 @@ export function VehicleWizard({ vehicleId }: Props) {
   const [loading, setLoading] = useState(isEdit);
   const [makes, setMakes] = useState<Make[]>([]);
   const [bodyTypes, setBodyTypes] = useState<BodyType[]>([]);
+  const [models, setModels] = useState<VehicleModel[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
   const [maxReachedStep, setMaxReachedStep] = useState<WizardStep>(1);
 
   useEffect(() => {
@@ -165,6 +172,48 @@ export function VehicleWizard({ vehicleId }: Props) {
       cancelled = true;
     };
   }, [isEdit, vehicleId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const currentMakeId = state.data.makeId;
+    if (!currentMakeId) {
+      setModels([]);
+      return;
+    }
+    setModelsLoading(true);
+    (async () => {
+      try {
+        const list = await listModelsByMake(currentMakeId);
+        if (!cancelled) setModels(list);
+      } catch (err) {
+        if (!cancelled) {
+          dispatch({
+            type: 'SET_ERROR',
+            error: err instanceof Error ? err.message : 'טעינת דגמים נכשלה',
+          });
+        }
+      } finally {
+        if (!cancelled) setModelsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.data.makeId]);
+
+  const handleAddNewModel = async (name: string) => {
+    if (!state.data.makeId) return;
+    try {
+      const created = await createVehicleModel({ makeId: state.data.makeId, name });
+      setModels((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name, 'he')));
+      dispatch({ type: 'SET_FIELD', field: 'modelName', value: created.name });
+    } catch (err) {
+      dispatch({
+        type: 'SET_ERROR',
+        error: err instanceof Error ? err.message : 'הוספת דגם נכשלה',
+      });
+    }
+  };
 
   const setField = <K extends keyof WizardData>(field: K, value: WizardData[K]) => {
     dispatch({ type: 'SET_FIELD', field, value });
@@ -308,7 +357,14 @@ export function VehicleWizard({ vehicleId }: Props) {
 
       <div className="space-y-4">
         {state.currentStep === 1 && (
-          <Step1Identification {...stepProps} makes={makes} bodyTypes={bodyTypes} />
+          <Step1Identification
+            {...stepProps}
+            makes={makes}
+            bodyTypes={bodyTypes}
+            models={models}
+            modelsLoading={modelsLoading}
+            onAddNewModel={handleAddNewModel}
+          />
         )}
         {state.currentStep === 2 && <Step2Mechanics {...stepProps} />}
         {state.currentStep === 3 && <Step3Ownership {...stepProps} />}
