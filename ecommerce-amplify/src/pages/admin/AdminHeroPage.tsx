@@ -4,6 +4,7 @@ import {
   getSiteHero,
   saveSiteHero,
   DEFAULT_SITE_HERO,
+  DEFAULT_WHATSAPP_PHONE,
   resolvePublicHero,
   type SiteHero,
 } from '@/lib/api/siteHero';
@@ -22,6 +23,7 @@ export function AdminHeroPage() {
   const [ctaText, setCtaText] = useState(DEFAULT_SITE_HERO.ctaText ?? '');
   const [ctaLink, setCtaLink] = useState(DEFAULT_SITE_HERO.ctaLink ?? '');
   const [imageKey, setImageKey] = useState<string | null>(null);
+  const [whatsappPhone, setWhatsappPhone] = useState(DEFAULT_WHATSAPP_PHONE);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -45,6 +47,7 @@ export function AdminHeroPage() {
         setCtaText(merged.ctaText ?? '');
         setCtaLink(merged.ctaLink ?? '/inventory');
         setImageKey(row?.imageKey ?? null);
+        setWhatsappPhone(merged.whatsappPhone ?? DEFAULT_WHATSAPP_PHONE);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'טעינת ה-Hero נכשלה');
       } finally {
@@ -115,6 +118,7 @@ export function AdminHeroPage() {
         ctaText: ctaText || null,
         ctaLink: ctaLink || '/',
         imageKey,
+        whatsappPhone: whatsappPhone.trim() || null,
       });
       showToast('success', 'ה-Hero נשמר');
     } catch (err) {
@@ -242,6 +246,23 @@ export function AdminHeroPage() {
                 הסר תמונה (רק גרדיאנט)
               </button>
             )}
+          </div>
+
+          <div className="pt-4 border-t border-gray-100">
+            <h2 className="font-bold text-brand-900 mb-1">פרטי קשר</h2>
+            <p className="text-xs text-gray-500 mb-3">
+              מספר WhatsApp לכפתור "צור קשר ב-WhatsApp" בעמוד הרכב. תומך בפורמט מקומי (05x) או בינלאומי (+972).
+            </p>
+            <label className="label">מספר WhatsApp</label>
+            <input
+              type="tel"
+              dir="ltr"
+              value={whatsappPhone}
+              onChange={(e) => setWhatsappPhone(e.target.value)}
+              placeholder={DEFAULT_WHATSAPP_PHONE}
+              maxLength={32}
+              className="input text-left"
+            />
           </div>
 
           <button type="submit" disabled={saving || loading} className="btn-accent">

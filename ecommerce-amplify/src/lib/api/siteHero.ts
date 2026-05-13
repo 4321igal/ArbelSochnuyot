@@ -11,6 +11,8 @@ export interface SiteHero {
   ctaLink?: string | null;
   /** S3 key — never treat as a stable public URL */
   imageKey?: string | null;
+  /** Free-text phone entered by admin (display format); normalize via toWhatsappDigits */
+  whatsappPhone?: string | null;
   updatedAt?: string | null;
 }
 
@@ -20,7 +22,11 @@ export interface SiteHeroInput {
   ctaText?: string | null;
   ctaLink?: string | null;
   imageKey?: string | null;
+  whatsappPhone?: string | null;
 }
+
+/** Default WhatsApp number when none is configured */
+export const DEFAULT_WHATSAPP_PHONE = '0524448584';
 
 /** Shown when no DB row exists yet */
 export const DEFAULT_SITE_HERO: Omit<SiteHero, 'updatedAt'> = {
@@ -30,7 +36,28 @@ export const DEFAULT_SITE_HERO: Omit<SiteHero, 'updatedAt'> = {
   ctaText: 'לקטלוג הרכבים',
   ctaLink: '/inventory',
   imageKey: null,
+  whatsappPhone: DEFAULT_WHATSAPP_PHONE,
 };
+
+/**
+ * Normalize an Israeli phone (e.g. "052-444-8584", "0524448584", "+972524448584")
+ * to the digit-only international form wa.me expects: "972524448584".
+ * Returns an empty string when the input has no usable digits.
+ */
+export function toWhatsappDigits(input: string | null | undefined): string {
+  if (!input) return '';
+  const digits = String(input).replace(/\D+/g, '');
+  if (!digits) return '';
+  if (digits.startsWith('972')) return digits;
+  if (digits.startsWith('0')) return `972${digits.slice(1)}`;
+  return digits;
+}
+
+/** Format a phone for display (light-touch: keep what admin typed, fall back to default) */
+export function resolveWhatsappPhone(hero: SiteHero | null): string {
+  const raw = hero?.whatsappPhone?.trim();
+  return raw && raw.length > 0 ? raw : DEFAULT_WHATSAPP_PHONE;
+}
 
 function mapSiteHero(raw: unknown): SiteHero {
   const row = (Array.isArray(raw) ? raw[0] : raw) as Record<string, unknown> | null | undefined;
@@ -44,6 +71,7 @@ function mapSiteHero(raw: unknown): SiteHero {
     ctaText: (row.ctaText as string) ?? null,
     ctaLink: (row.ctaLink as string) ?? null,
     imageKey: (row.imageKey as string) ?? null,
+    whatsappPhone: (row.whatsappPhone as string) ?? null,
     updatedAt: (row.updatedAt as string) ?? null,
   };
 }
@@ -62,12 +90,20 @@ function sanitizeHeroInput(input: SiteHeroInput): SiteHeroInput {
   if (!ctaLink.startsWith('/') && !/^https?:\/\//i.test(ctaLink)) {
     ctaLink = `/${ctaLink.replace(/^\/+/, '')}`;
   }
+  const whatsappRaw = input.whatsappPhone?.trim();
+  let whatsappPhone: string | null = null;
+  if (whatsappRaw) {
+    if (whatsappRaw.length > 32) throw new Error('WhatsApp phone too long (max 32)');
+    if (!toWhatsappDigits(whatsappRaw)) throw new Error('מספר WhatsApp לא תקין');
+    whatsappPhone = whatsappRaw;
+  }
   return {
     title,
     subtitle,
     ctaText,
     ctaLink,
     imageKey: input.imageKey?.trim() || null,
+    whatsappPhone,
   };
 }
 
@@ -92,6 +128,7 @@ export function resolvePublicHero(hero: SiteHero | null): SiteHero {
     ctaText: base?.ctaText?.trim() || DEFAULT_SITE_HERO.ctaText,
     ctaLink: base?.ctaLink?.trim() || DEFAULT_SITE_HERO.ctaLink,
     imageKey: base?.imageKey || null,
+    whatsappPhone: base?.whatsappPhone?.trim() || DEFAULT_WHATSAPP_PHONE,
     updatedAt: base?.updatedAt ?? null,
   };
 }
@@ -113,6 +150,7 @@ export async function saveSiteHero(input: SiteHeroInput): Promise<SiteHero> {
       ctaText: safe.ctaText ?? undefined,
       ctaLink: safe.ctaLink ?? undefined,
       imageKey: safe.imageKey === null || safe.imageKey === '' ? null : safe.imageKey,
+      whatsappPhone: safe.whatsappPhone === null || safe.whatsappPhone === '' ? null : safe.whatsappPhone,
       updatedAt,
     });
     if (errors?.length || !data) {
@@ -128,6 +166,7 @@ export async function saveSiteHero(input: SiteHeroInput): Promise<SiteHero> {
     ctaText: safe.ctaText ?? undefined,
     ctaLink: safe.ctaLink ?? undefined,
     imageKey: safe.imageKey ?? undefined,
+    whatsappPhone: safe.whatsappPhone ?? undefined,
     updatedAt,
   });
   if (errors?.length || !data) {

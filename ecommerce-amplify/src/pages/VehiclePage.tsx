@@ -3,6 +3,12 @@ import { useParams, Link } from 'react-router-dom';
 import { Loader2, Phone, MessageSquare, GitCompare, Heart, ShieldCheck, MapPin, Calendar } from 'lucide-react';
 import { getVehicle, getVehicleSearchMeta, type Vehicle, type VehicleSearchMeta } from '@/lib/api/vehicles';
 import { getMake, type Make } from '@/lib/api/makes';
+import {
+  getSiteHero,
+  resolveWhatsappPhone,
+  toWhatsappDigits,
+  DEFAULT_WHATSAPP_PHONE,
+} from '@/lib/api/siteHero';
 import { VehicleGallery } from '@/components/vehicle/VehicleGallery';
 import { VehicleSpecsTable } from '@/components/vehicle/VehicleSpecsTable';
 import { FinanceCalculator } from '@/components/finance/FinanceCalculator';
@@ -16,6 +22,14 @@ function formatPrice(p: number): string {
   return `₪${p.toLocaleString('he-IL')}`;
 }
 
+function WhatsappIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+      <path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.91-7.02zM12.04 20.15h-.01a8.21 8.21 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.24-8.23 2.2 0 4.27.86 5.83 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.69 8.23-8.23 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-2-1.24a7.5 7.5 0 0 1-1.38-1.72c-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.44-.06-.12-.56-1.34-.76-1.83-.2-.48-.41-.42-.56-.43-.14-.01-.31-.01-.48-.01a.92.92 0 0 0-.67.31c-.23.25-.87.85-.87 2.07 0 1.22.89 2.4 1.02 2.57.12.17 1.76 2.68 4.26 3.76.6.26 1.06.41 1.42.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.1-.22-.16-.47-.29z" />
+    </svg>
+  );
+}
+
 export function VehiclePage() {
   const { id } = useParams<{ id: string }>();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
@@ -23,6 +37,7 @@ export function VehiclePage() {
   const [searchMeta, setSearchMeta] = useState<VehicleSearchMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [inquiryOpen, setInquiryOpen] = useState(false);
+  const [whatsappPhone, setWhatsappPhone] = useState<string>(DEFAULT_WHATSAPP_PHONE);
 
   const favorites = useFavorites();
   const compare = useCompare();
@@ -37,13 +52,15 @@ export function VehiclePage() {
         if (cancelled) return;
         setVehicle(v);
         if (v) {
-          const [m, sm] = await Promise.all([
+          const [m, sm, hero] = await Promise.all([
             v.makeId ? getMake(v.makeId) : Promise.resolve(null),
             getVehicleSearchMeta(v.id).catch(() => null),
+            getSiteHero().catch(() => null),
           ]);
           if (!cancelled) {
             setMake(m);
             setSearchMeta(sm);
+            setWhatsappPhone(resolveWhatsappPhone(hero));
           }
         }
       } finally {
@@ -82,6 +99,17 @@ export function VehiclePage() {
   const discount = vehicle.listPrice && vehicle.listPrice > vehicle.price
     ? Math.round((1 - vehicle.price / vehicle.listPrice) * 100)
     : 0;
+
+  const whatsappDigits = toWhatsappDigits(whatsappPhone);
+  const whatsappHref = (() => {
+    if (!whatsappDigits) return null;
+    const lines = [
+      `שלום, אני מעוניין/ת ברכב ${vehicleLabel}.`,
+      `מחיר: ${formatPrice(vehicle.price)}`,
+      typeof window !== 'undefined' ? window.location.href : '',
+    ].filter(Boolean);
+    return `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(lines.join('\n'))}`;
+  })();
 
   return (
     <div className="bg-gray-50 min-h-screen pb-32">
@@ -225,6 +253,17 @@ export function VehiclePage() {
                   <MessageSquare className="w-4 h-4" />
                   צור קשר על הרכב
                 </button>
+                {whatsappHref && (
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full text-base py-3 inline-flex items-center justify-center gap-2 rounded-lg font-bold bg-[#25D366] text-white hover:bg-[#1ebe5d] transition-colors"
+                  >
+                    <WhatsappIcon className="w-4 h-4" />
+                    שלח הודעה ב-WhatsApp
+                  </a>
+                )}
                 <a href="tel:+972-3-1234567" className="btn-secondary w-full text-base py-3">
                   <Phone className="w-4 h-4" />
                   התקשר עכשיו

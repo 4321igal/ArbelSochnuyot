@@ -205,6 +205,7 @@ const schema = a.schema({
       ctaText: a.string(),
       ctaLink: a.string(),
       imageKey: a.string(),
+      whatsappPhone: a.string(),
       updatedAt: a.datetime(),
     })
     .authorization((allow) => [
