@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-east-1_MXeA3VqhE",
+    "user_pool_id": "us-east-1_eHikQmEbU",
     "aws_region": "us-east-1",
-    "user_pool_client_id": "18fg4obhnufaq1rmtu3bo56vqm",
-    "identity_pool_id": "us-east-1:fe1c16ec-c2c9-4553-945a-7e65340ad493",
+    "user_pool_client_id": "7kaigrghgefnkh91i7kk0n2oji",
+    "identity_pool_id": "us-east-1:20b0b82a-1454-4cff-a6ac-38e296d9ecaf",
     "mfa_methods": [
       "TOTP"
     ],
@@ -39,9 +39,9 @@
     "unauthenticated_identities_enabled": true
   },
   "data": {
-    "url": "https://ptauybnot5at3oz4ub5qg7wsda.appsync-api.us-east-1.amazonaws.com/graphql",
+    "url": "https://tiuz5yiwgzadhpsff5ahi5wz4m.appsync-api.us-east-1.amazonaws.com/graphql",
     "aws_region": "us-east-1",
-    "api_key": "da2-aex2xdebpbdtdbimoe6r5t6sci",
+    "api_key": "da2-6vvskv6oyvf5ba64lxmxx7l7t4",
     "default_authorization_type": "AMAZON_COGNITO_USER_POOLS",
     "authorization_types": [
       "API_KEY",
@@ -124,6 +124,22 @@
                   "makeId"
                 ]
               }
+            },
+            "vehicleModels": {
+              "name": "vehicleModels",
+              "isArray": true,
+              "type": {
+                "model": "VehicleModel"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "isArrayNullable": true,
+              "association": {
+                "connectionType": "HAS_MANY",
+                "associatedWith": [
+                  "makeId"
+                ]
+              }
             }
           },
           "syncable": true,
@@ -146,6 +162,158 @@
               "properties": {
                 "name": "makesBySlug",
                 "queryField": "listMakeBySlug",
+                "fields": [
+                  "slug"
+                ]
+              }
+            },
+            {
+              "type": "auth",
+              "properties": {
+                "rules": [
+                  {
+                    "allow": "public",
+                    "provider": "iam",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "allow": "private",
+                    "operations": [
+                      "read"
+                    ]
+                  },
+                  {
+                    "groupClaim": "cognito:groups",
+                    "provider": "userPools",
+                    "allow": "groups",
+                    "operations": [
+                      "create",
+                      "read",
+                      "update",
+                      "delete"
+                    ],
+                    "groups": [
+                      "Admin"
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "primaryKeyInfo": {
+            "isCustomPrimaryKey": false,
+            "primaryKeyFieldName": "id",
+            "sortKeyFieldNames": []
+          }
+        },
+        "VehicleModel": {
+          "name": "VehicleModel",
+          "fields": {
+            "id": {
+              "name": "id",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "makeId": {
+              "name": "makeId",
+              "isArray": false,
+              "type": "ID",
+              "isRequired": true,
+              "attributes": []
+            },
+            "name": {
+              "name": "name",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "slug": {
+              "name": "slug",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true,
+              "attributes": []
+            },
+            "sortOrder": {
+              "name": "sortOrder",
+              "isArray": false,
+              "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "isActive": {
+              "name": "isActive",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "createdAt": {
+              "name": "createdAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "updatedAt": {
+              "name": "updatedAt",
+              "isArray": false,
+              "type": "AWSDateTime",
+              "isRequired": false,
+              "attributes": []
+            },
+            "make": {
+              "name": "make",
+              "isArray": false,
+              "type": {
+                "model": "Make"
+              },
+              "isRequired": false,
+              "attributes": [],
+              "association": {
+                "connectionType": "BELONGS_TO",
+                "targetNames": [
+                  "makeId"
+                ]
+              }
+            }
+          },
+          "syncable": true,
+          "pluralName": "VehicleModels",
+          "attributes": [
+            {
+              "type": "model",
+              "properties": {}
+            },
+            {
+              "type": "key",
+              "properties": {
+                "fields": [
+                  "id"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "byMakeName",
+                "queryField": "listVehicleModelByMakeIdAndName",
+                "fields": [
+                  "makeId",
+                  "name"
+                ]
+              }
+            },
+            {
+              "type": "key",
+              "properties": {
+                "name": "vehicleModelsBySlug",
+                "queryField": "listVehicleModelBySlug",
                 "fields": [
                   "slug"
                 ]
@@ -508,6 +676,15 @@
               "name": "previousOwners",
               "isArray": false,
               "type": "Int",
+              "isRequired": false,
+              "attributes": []
+            },
+            "ownershipType": {
+              "name": "ownershipType",
+              "isArray": false,
+              "type": {
+                "enum": "VehicleOwnershipType"
+              },
               "isRequired": false,
               "attributes": []
             },
@@ -1485,6 +1662,17 @@
             "FOUR_WD"
           ]
         },
+        "VehicleOwnershipType": {
+          "name": "VehicleOwnershipType",
+          "values": [
+            "PRIVATE",
+            "LEASING",
+            "RENTAL",
+            "TAXI",
+            "COMPANY",
+            "IMPORTER"
+          ]
+        },
         "VehicleStatus": {
           "name": "VehicleStatus",
           "values": [
@@ -1623,11 +1811,11 @@
   },
   "storage": {
     "aws_region": "us-east-1",
-    "bucket_name": "amplify-ecommerceamplify--arbelstoragebucketf0d5a1-bmemsu60xcwg",
+    "bucket_name": "amplify-ecommerceamplify--arbelstoragebucketf0d5a1-dmxsw9qbtq74",
     "buckets": [
       {
         "name": "arbelStorage",
-        "bucket_name": "amplify-ecommerceamplify--arbelstoragebucketf0d5a1-bmemsu60xcwg",
+        "bucket_name": "amplify-ecommerceamplify--arbelstoragebucketf0d5a1-dmxsw9qbtq74",
         "aws_region": "us-east-1",
         "paths": {
           "public/*": {
